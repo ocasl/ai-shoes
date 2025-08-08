@@ -1,0 +1,1436 @@
+<template>
+  <div class="sole-fusion-container">
+    <div class="fusion-content">
+      <div class="left-panel">
+        <!-- Step 1 -->
+        <div class="step-section" :class="{ 'active-step': currentStep === 1 }">
+          <div class="step-header" @click="setStep(1)">
+            <span class="step-title">Step 1</span>
+            <span class="step-desc">上传需要消除元素的图片</span>
+            <el-tooltip content="帮助信息" placement="top">
+              <el-icon><QuestionFilled /></el-icon>
+            </el-tooltip>
+            <span v-if="mainImage" class="step-status">
+              <el-icon><Check /></el-icon>
+            </span>
+          </div>
+
+          <div class="upload-section">
+            <div class="image-preview" @click="handleMainUploadClick">
+              <div v-if="mainImage" class="preview-container" style="position:relative;">
+                <img :src="mainImage" alt="主图预览" class="preview-img" crossorigin="anonymous" />
+                <div class="change-overlay">
+                  <el-icon><Plus /></el-icon>
+                  <span>更换图片</span>
+                </div>
+                <button class="zoom-icon-btn" type="button" @click.stop="showZoomDialogMain = true">
+                  <el-icon><ZoomIn /></el-icon>
+                </button>
+              </div>
+              <div v-else class="upload-placeholder">
+                <el-icon><Plus /></el-icon>
+                <span>点击上传图片</span>
+              </div>
+              <input ref="fileInputMain" type="file" accept="image/*" style="display:none" @change="handleMainFileSelect" />
+            </div>
+
+            <!-- 添加标记可选区域按钮 -->
+            <div v-if="mainImage" class="mark-area" @click="showSelectionOptions">
+              <el-icon><EditPen /></el-icon>
+              <span>标记可选区域</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 中间工作区域 -->
+      <div class="work-area" v-if="!showEditDialogMain && !isEditingMainImage">
+        <template v-if="!mainImage">
+          <div class="instructions-container">
+            <div class="instructions-content">
+              <h3>使用说明</h3>
+              <ol>
+                <li>请点击"标记可改区域"选取或涂抹需要更改的目标区域</li>
+                <li>
+                  在AI运行中，左键点击自目标区域为选取，右键点击自目标区域为排除
+                </li>
+                <li>请保持主图与参考图鞋款角度的一致性以达到最佳生成效果</li>
+              </ol>
+            </div>
+          </div>
+        </template>
+
+        <!-- 显示主图工作区 -->
+        <Suspense v-else-if="isEditingMainImage">
+          <template #default>
+            <div class="image-workspace-container">
+              <ImageWorkspaceComp
+                :image-url="mainImage"
+                :original-image-name="mainImageName"
+                @image-edited="handleMainImageEdited"
+                @editing-completed="completeMainImageEditing"
+                ref="mainImageWorkspaceRef"
+              />
+            </div>
+          </template>
+          <template #fallback>
+            <div class="loading-state">
+              <el-icon class="loading-icon"><Loading /></el-icon>
+              <p>加载中...</p>
+            </div>
+          </template>
+        </Suspense>
+
+        <!-- 结果查看区域 -->
+        <Suspense v-else-if="isViewingResults">
+          <template #default>
+            <div class="image-workspace-container">
+              <ImageWorkspaceComp
+                :image-url="mainImage"
+                :original-image-name="mainImageName"
+                :is-view-results="true"
+                :result-images="generatedImages"
+                @image-edited="handleResultSelected"
+                @exit-results="exitResultsView"
+                ref="resultsWorkspaceRef"
+              />
+            </div>
+          </template>
+          <template #fallback>
+            <div class="loading-state">
+              <el-icon class="loading-icon"><Loading /></el-icon>
+              <p>加载中...</p>
+            </div>
+          </template>
+        </Suspense>
+      </div>
+
+      <!-- 右侧面板 -->
+      <div class="right-panel">
+        <!-- 生成按钮 -->
+        <el-button
+          type="primary"
+          class="generate-btn"
+          @click="handleGenerate"
+          :disabled="!canGenerate"
+        >
+          {{ shoeStore.aiTaskStatus === 'running' ? '生成中...' : '立即生成' }}
+        </el-button>
+
+        <div class="nav-buttons">
+          <el-button v-if="currentStep > 1" @click="prevStep">
+            上一步
+          </el-button>
+        </div>
+      </div>
+
+      <!-- 主图本地预览弹窗 -->
+      <el-dialog 
+        v-model="showPreviewDialogMain" 
+        title="主图预览" 
+        width="800px" 
+        :close-on-click-modal="false"
+        @close="cancelMainPreview"
+      >
+        <div class="upload-modal-content">
+          <div class="upload-area">
+            <div v-if="previewImageMain" class="file-preview">
+              <img :src="previewImageMain" alt="主图预览" class="preview-img" />
+            </div>
+            <div v-else class="upload-placeholder">
+              <el-icon><Plus /></el-icon>
+              <span>请先选择图片</span>
+              <p class="upload-tip">支持 JPG、PNG 格式，最大 10MB</p>
+            </div>
+          </div>
+        </div>
+        <template #footer>
+          <div class="dialog-footer">
+            <el-button @click="cancelMainPreview">取消</el-button>
+            <el-button type="primary" @click="confirmMainPreview" :disabled="!selectedFileMain">确定</el-button>
+          </div>
+        </template>
+      </el-dialog>
+
+      <!-- 主图编辑弹窗 -->
+      <el-dialog 
+        v-model="showEditDialogMain" 
+        title="主图编辑" 
+        width="50%" 
+        :close-on-click-modal="false" 
+        class="edit-dialog"
+      >
+        <div class="edit-modal-content">
+          <Suspense>
+            <template #default>
+              <div class="image-workspace-container">
+                <ImageWorkspaceComp
+                  ref="editDialogWorkspaceRef"
+                  :image-url="mainImage"
+                  :original-image-name="mainImageName"
+                  @image-edited="handleMainImageEdited"
+                  @editing-completed="closeEditDialogMain"
+                />
+              </div>
+            </template>
+            <template #fallback>
+              <div class="loading-state">
+                <el-icon class="loading-icon"><Loading /></el-icon>
+                <p>加载中...</p>
+              </div>
+            </template>
+          </Suspense>
+        </div>
+        <template #footer>
+          <div class="dialog-footer">
+            <el-button @click="closeEditDialogMain">取消</el-button>
+            <!-- <el-button type="primary" @click="closeEditDialogMain">确认编辑</el-button> -->
+          </div>
+        </template>
+      </el-dialog>
+
+          <!-- 标记可选区域选项弹窗 -->
+    <SelectionOptionsDialog
+      v-model="showSelectionDialog"
+      @select="handleSelectOption"
+    />
+    </div>
+
+    <!-- 全屏Loading进度条 -->
+    <div v-if="shoeStore.aiTaskStatus === 'running'" class="loading-overlay">
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <el-progress 
+          :percentage="shoeStore.aiTaskProgress" 
+          :stroke-width="8"
+          :show-text="false"
+          color="#c8ad7f"
+          class="loading-progress"
+        />
+        <div class="loading-percentage">{{ shoeStore.aiTaskProgress }}%</div>
+        <div class="loading-text">AI任务执行中</div>
+      </div>
+    </div>
+  </div>
+
+<!-- 主图放大预览弹窗 -->
+<el-dialog
+  v-model="showZoomDialogMain"
+  width="80vw"
+  :close-on-click-modal="true"
+  :modal-style="{ height: '78vh' }"
+  style="height:78vh;"
+  class="zoom-dialog"
+>
+  <div
+    class="zoom-img-container"
+    @wheel="handleZoomWheelMain"
+    style="height:calc(78vh - 60px);display:flex;align-items:center;justify-content:center;overflow:hidden;"
+  >
+    <img
+      :src="mainImage"
+      alt="放大预览"
+      :style="`max-width:100%;max-height:78vh;transform:scale(${zoomMain});transition:transform 0.2s;display:block;margin:auto;`"
+    />
+  </div>
+  <div style="margin-top:8px;color:#222;text-align:center;">缩放：{{ (zoomMain * 100).toFixed(0) }}%</div>
+</el-dialog>
+</template>
+
+<script setup lang="ts">
+import { ref, defineAsyncComponent, computed, nextTick, onMounted, watch, onUnmounted } from "vue";
+import {
+  Plus,
+  Loading,
+  QuestionFilled,
+  Check,
+  EditPen,
+  ZoomIn,
+} from "@element-plus/icons-vue";
+import type { UploadInstance } from "element-plus";
+import { ElMessage, ElLoading, ElMessageBox } from "element-plus";
+import {
+  uploadImage,
+  feedbackImage,
+  isUserLoggedIn,
+  xc,
+} from "../../api/file";
+import type {
+  UploadImageResponse,
+  XcRequest,
+} from "../../api/file";
+import { useRouter, useRoute } from "vue-router";
+import { useShoeStore } from "../../store"
+import { startAiTaskWs, stopAiTaskWs } from "../../utils/wsTask"
+
+// 引入异步组件
+const ImageWorkspaceComp = defineAsyncComponent(
+  () => import("../design/ImageWorkspace.vue")
+);
+
+// 引入选择对话框组件
+const SelectionOptionsDialog = defineAsyncComponent(
+  () => import("../common/SelectionOptionsDialog.vue")
+);
+
+// 获取路由器
+const router = useRouter();
+const route = useRoute();
+
+// 获取store
+const shoeStore = useShoeStore()
+
+// 步骤状态管理
+const currentStep = ref(1);
+const mainImageWorkspaceRef = ref(null);
+
+// 状态管理
+const mainImage = ref("");
+const mainImageName = ref<string | number>(""); // 保存上传后的主图ID
+const fileList = ref([]);
+const mainImageId = ref('')
+
+// 添加编辑状态变量
+const isEditingMainImage = ref(false);
+
+// 新增：跟踪是否正在处理元素消除任务
+const isProcessingElementRemoveTask = ref(false)
+
+// 引用上传组件
+const mainImageUploadRef = ref<UploadInstance | null>(null);
+
+// 结果查看相关
+const isViewingResults = ref(false);
+const generatedImages = ref<string[]>([]);
+const resultsWorkspaceRef = ref(null);
+
+// 主图本地预览弹窗相关状态
+const showPreviewDialogMain = ref(false);
+const previewImageMain = ref('');
+const selectedFileMain = ref<File|null>(null);
+const fileInputMain = ref<HTMLInputElement>();
+
+// 主图编辑弹窗相关状态
+const showEditDialogMain = ref(false);
+const editDialogWorkspaceRef = ref(null);
+
+// 标记可选区域选项弹窗相关状态
+const showSelectionDialog = ref(false);
+
+// 主图放大预览弹窗相关状态
+const showZoomDialogMain = ref(false);
+const zoomMain = ref(1);
+function handleZoomWheelMain(e: WheelEvent) {
+  e.preventDefault();
+  if (e.deltaY < 0) {
+    zoomMain.value = Math.min(zoomMain.value + 0.1, 5);
+  } else {
+    zoomMain.value = Math.max(zoomMain.value - 0.1, 0.2);
+  }
+}
+
+// 计算属性
+const canGenerate = computed(() => {
+  // 修改条件，只要完成Step 1并有主图就可以生成
+  return !!mainImage.value && !isEditingMainImage.value;
+});
+
+// 步骤控制方法
+const setStep = (step: number) => {
+  if (step === 1) {
+    currentStep.value = step;
+  }
+};
+
+const prevStep = () => {
+  if (currentStep.value > 1) {
+    currentStep.value -= 1;
+  }
+};
+
+// 主图上传相关方法
+const handleMainUploadClick = () => {
+  fileInputMain.value?.click();
+};
+
+const handleMainFileSelect = (event: Event) => {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (file) {
+    if (!file.type.startsWith('image/')) {
+      ElMessage.error('请选择图片文件')
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      ElMessage.error('文件大小不能超过10MB')
+      return
+    }
+    selectedFileMain.value = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+      previewImageMain.value = e.target?.result as string;
+      showPreviewDialogMain.value = true;
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+const confirmMainPreview = () => {
+  if (!selectedFileMain.value) return;
+  uploadFile(selectedFileMain.value, 'input', (_, imageId) => {
+    if (imageId) {
+      mainImageName.value = imageId;
+      
+      // 设置全局状态
+      shoeStore.setOriginalImageId(Number(imageId));
+      console.log('🌐 已设置全局原始图片ID:', imageId);
+    }
+    showEditDialogMain.value = true;
+  });
+  mainImage.value = previewImageMain.value;
+  showPreviewDialogMain.value = false;
+  // 清空文件输入框
+  if (fileInputMain.value) {
+    fileInputMain.value.value = '';
+  }
+  selectedFileMain.value = null;
+  previewImageMain.value = '';
+};
+
+const cancelMainPreview = () => {
+  showPreviewDialogMain.value = false;
+  // 清空文件输入框
+  if (fileInputMain.value) {
+    fileInputMain.value.value = '';
+  }
+  selectedFileMain.value = null;
+  previewImageMain.value = '';
+};
+
+// 编辑弹窗相关方法
+const closeEditDialogMain = () => {
+  showEditDialogMain.value = false;
+};
+
+const handleMainImageEdited = (editedImageUrl: string, imageId?: number) => {
+  mainImage.value = editedImageUrl;
+  if (imageId) {
+    mainImageName.value = imageId;
+    
+    // 设置全局状态，让其他功能使用编辑后的图片ID
+    shoeStore.setOriginalImageId(imageId);
+    console.log('🌐 已设置全局编辑后图片ID:', imageId);
+    
+    // 不关闭编辑弹窗，允许继续编辑新图片
+    return;
+  }
+  // 不关闭编辑弹窗，允许继续编辑新图片
+};
+
+// 压缩图片
+const compressImage = (file: File): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (e) => {
+      const img = new Image();
+      img.src = e.target?.result as string;
+
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        // 限制最大尺寸为1600px
+        const maxSize = 1600;
+        if (width > height && width > maxSize) {
+          height = Math.round((height * maxSize) / width);
+          width = maxSize;
+        } else if (height > maxSize) {
+          width = Math.round((width * maxSize) / height);
+          height = maxSize;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        // 压缩为80%质量的JPEG
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name, {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            } else {
+              reject(new Error("压缩失败"));
+            }
+          },
+          "image/jpeg",
+          0.8
+        );
+      };
+
+      img.onerror = () => {
+        reject(new Error("图片加载失败"));
+      };
+    };
+
+    reader.onerror = () => {
+      reject(new Error("文件读取失败"));
+    };
+  });
+};
+
+// 将dataURL转换为Blob对象
+const dataURLtoBlob = (dataURL: string) => {
+  const parts = dataURL.split(";base64,");
+  const contentType = parts[0].split(":")[1];
+  const raw = window.atob(parts[1]);
+  const uInt8Array = new Uint8Array(raw.length);
+
+  for (let i = 0; i < raw.length; ++i) {
+    uInt8Array[i] = raw.charCodeAt(i);
+  }
+
+  return new Blob([uInt8Array], { type: contentType });
+};
+
+// 封装文件上传和回显流程
+const uploadFile = (
+  file: File,
+  type: "input" | "output",
+  callback?: (imageUrl: string, imageName?: string) => void
+) => {
+  // 检查用户是否已登录
+  if (!isUserLoggedIn()) {
+    ElMessageBox.confirm(
+      "您需要登录才能上传图片。是否现在登录？",
+      "未登录提示",
+      {
+        confirmButtonText: "去登录",
+        cancelButtonText: "取消",
+        type: "warning",
+      }
+    )
+      .then(() => {
+        // 保存当前页面路径，登录后可以返回
+        localStorage.setItem(
+          "redirectAfterLogin",
+          router.currentRoute.value.fullPath
+        );
+        // 导航到登录页
+        router.push("/login");
+      })
+      .catch(() => {
+        ElMessage.info("您可以继续使用本地图片预览功能，但无法保存到服务器");
+      });
+
+    // 仍然显示本地预览
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (callback && e.target?.result) {
+        callback(e.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+
+    return;
+  }
+
+  // 显示加载提示
+  const loading = ElLoading.service({
+    lock: true,
+    text: "图片上传中...",
+    background: "rgba(0, 0, 0, 0.7)",
+  });
+
+  // 检查文件大小，如果超过10MB则压缩
+  if (file.size > 10 * 1024 * 1024) {
+    ElMessage.warning("图片过大，正在压缩...");
+    compressImage(file)
+      .then((compressedFile) => {
+        doUpload(compressedFile);
+      })
+      .catch((err) => {
+        ElMessage.error("图片压缩失败：" + err.message);
+        loading.close();
+      });
+  } else {
+    doUpload(file);
+  }
+
+  function doUpload(fileToUpload: File) {
+    uploadImage(fileToUpload)
+      .then((response: any) => {
+        if (response.code === 0 || response.code === 200) {
+          const imageData = response.data as UploadImageResponse;
+          const imageId = imageData.id;
+          // 直接用后端返回的图片URL字符串
+          const imageUrl = imageData.url || imageData.imageUrl || imageData.path || '';
+          if (callback) callback(imageUrl, imageId);
+          ElMessage.success('图片上传成功');
+        } else {
+          throw new Error(response.msg || '上传失败');
+        }
+      })
+      .catch((error: any) => {
+        ElMessage.error({
+          message: '图片上传失败: ' + (error.message || '未知错误'),
+          duration: 5000,
+        });
+      })
+      .then(() => {
+        loading.close();
+      });
+  }
+};
+
+// 添加完成编辑方法
+const completeMainImageEditing = () => {
+  isEditingMainImage.value = false;
+};
+
+// 处理结果图选择
+const handleResultSelected = () => {
+  console.log("用户选择了一张结果图片");
+};
+
+// 退出结果查看模式
+const exitResultsView = () => {
+  isViewingResults.value = false;
+};
+
+// 处理生成按钮点击
+const handleGenerate = async () => {
+  if (!canGenerate.value) return;
+
+  // 验证用户登录
+  if (!isUserLoggedIn()) {
+    ElMessageBox.confirm(
+      "您需要登录才能使用生成功能。是否现在登录？",
+      "未登录提示",
+      {
+        confirmButtonText: "去登录",
+        cancelButtonText: "取消",
+        type: "warning",
+      }
+    ).then(() => {
+      localStorage.setItem(
+        "redirectAfterLogin",
+        router.currentRoute.value.fullPath
+      );
+      router.push("/login");
+    });
+    return;
+  }
+
+  // 验证图片名称是否存在
+  if (!mainImageName.value) {
+    ElMessage.warning("请先将图片上传至服务器");
+    return;
+  }
+
+  // 显示加载提示
+  const loadingInstance = ElLoading.service({
+    lock: true,
+    text: "正在生成图片，请稍候...",
+    background: "rgba(0, 0, 0, 0.7)",
+  });
+
+  try {
+    isProcessingElementRemoveTask.value = true; // 设置为元素消除任务进行中
+    
+    // 优先使用全局的当前图片ID（抠图后的ossId），如果没有则使用本地图片ID
+    const imageIdToUse = Number(mainImageName.value)
+    console.log("使用的图片名称:", {
+      图片ID: imageIdToUse,
+      来源: '当前上传的图片',
+      是否蒙版: 1, // 默认使用蒙版模式
+    });
+
+    // 准备请求参数
+    const requestData: XcRequest = {
+      imageId: imageIdToUse,
+      isMask: 1, // 使用蒙版模式
+    };
+
+    // 发送请求
+    const response = await xc(requestData);
+    
+    if (response.code === 0 || response.code === 200) {
+      // 处理成功响应
+      const result = response.data;
+
+      // 检查是否有WebSocket任务信息
+      if (result && result.promptId && result.clientId && result.server) {
+        // 设置任务信息并启动WebSocket监听
+        shoeStore.setAiTaskInfo({
+          promptId: result.promptId,
+          clientId: result.clientId,
+          server: result.server
+        })
+        startAiTaskWs(result.clientId, result.server, result.promptId, 'element-remove')
+        ElMessage.success('任务已提交，正在生成...')
+      } else if (result && result.viewUrls && Array.isArray(result.viewUrls)) {
+        // 直接返回结果的情况
+        generatedImages.value = result.viewUrls;
+
+        // 显示结果
+        if (generatedImages.value.length > 0) {
+          isViewingResults.value = true;
+
+          // 如果有resultsWorkspaceRef，调用其showResults方法
+          if (resultsWorkspaceRef.value) {
+            // @ts-ignore
+            resultsWorkspaceRef.value.showResults(generatedImages.value);
+          }
+
+          ElMessage.success("元素消除成功");
+        } else {
+          ElMessage.warning("生成成功但未获得图片");
+        }
+      } else {
+        throw new Error('未获取到有效的结果图片');
+      }
+    } else {
+      // 处理特定的错误码
+      if (response.code === 1013) {
+        throw new Error('请先选择需要更改的区域！');
+      } else {
+        throw new Error(response.msg || "生成图片失败");
+      }
+    }
+  } catch (error: any) {
+    console.error("元素消除失败:", error);
+    ElMessage.error("生成失败: " + (error.message || "未知错误"));
+    isProcessingElementRemoveTask.value = false // 重置任务状态
+  } finally {
+    loadingInstance.close();
+  }
+};
+
+// 添加处理标记区域的函数 - 已被showSelectionOptions替代
+
+// 标记可选区域选项弹窗相关方法
+const showSelectionOptions = () => {
+  showSelectionDialog.value = true;
+};
+
+// 处理选项选择
+const handleSelectOption = (option: string) => {
+  showSelectionDialog.value = false;
+  
+  if (option === 'brush') {
+    // 涂抹选区 - 打开编辑弹窗并切换到mask工具
+    showEditDialogMain.value = true;
+    // 弹窗打开后，自动切换到"标记可选"工具
+    nextTick(() => {
+        if (editDialogWorkspaceRef.value && typeof editDialogWorkspaceRef.value.openToolModal === 'function') {
+          editDialogWorkspaceRef.value.openToolModal('mask');
+        }
+    });
+  } else if (option === 'smart') {
+    // 智能选区 - 直接使用isEditingMainImage和smartSelect工具
+    isEditingMainImage.value = true;
+    nextTick(() => {
+        if (mainImageWorkspaceRef.value && typeof mainImageWorkspaceRef.value.selectTool === 'function') {
+          mainImageWorkspaceRef.value.selectTool('smartSelect');
+        }
+    });
+  }
+};
+
+// 监听任务图片和进度，自动渲染
+watch(() => shoeStore.aiTaskImages, (newImages) => {
+  if (Array.isArray(newImages) && newImages.length > 0) {
+    // 只有在元素消除任务进行中时才显示结果
+    if (isProcessingElementRemoveTask.value) {
+      generatedImages.value = newImages
+      isViewingResults.value = true
+      if (resultsWorkspaceRef.value) {
+        // @ts-ignore
+        resultsWorkspaceRef.value.showResults(newImages)
+      }
+      ElMessage.success('元素消除成功')
+      isProcessingElementRemoveTask.value = false // 重置任务状态
+    }
+  }
+})
+
+onMounted(() => {
+  if (route.query.creativeImg) {
+    mainImage.value = route.query.creativeImg as string
+    showEditDialogMain.value = true
+  }
+})
+
+// 页面卸载时断开WebSocket
+onUnmounted(() => {
+  stopAiTaskWs()
+  isProcessingElementRemoveTask.value = false // 重置任务状态
+})
+</script>
+
+<style scoped>
+.sole-fusion-container {
+  width: 100%;
+  min-height: 100vh;
+  background: transparent;
+  color: #fff;
+  padding: 20px;
+  position: relative;
+  margin-left: 80px;
+}
+
+/* 添加背景容器 */
+.sole-fusion-container::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("@/assets/bg.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: -1;
+}
+
+.fusion-content {
+  display: flex;
+  gap: 20px;
+  min-height: calc(100vh - 40px);
+  height: auto;
+  padding: 20px;
+  max-width: calc(100vw - 100px);
+  position: relative;
+  z-index: 2;
+}
+
+.left-panel {
+  width: 270px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 10px;
+  backdrop-filter: blur(10px);
+  overflow-y: auto;
+  max-height: 100%;
+}
+
+.work-area {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.right-panel {
+  width: 280px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 10px;
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.step-section {
+  margin-bottom: 15px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.active-step {
+  box-shadow: 0 0 10px rgba(0, 163, 255, 0.3);
+  background: rgba(0, 163, 255, 0.05);
+}
+
+.completed-step .step-title {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.disabled-step {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.step-header:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.step-title {
+  color: #c8ad7f;
+  font-weight: bold;
+}
+
+.step-desc {
+  font-size: 16px;
+  color: #fff;
+}
+
+.step-status {
+  margin-left: auto;
+  color: #00ff00;
+}
+
+.upload-section {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.image-preview {
+  width: 100%;
+  aspect-ratio: 4/3;
+  border-radius: 6px;
+  border: 1px dashed transparent;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.image-preview:hover {
+  border-color: transparent;
+  background: rgba(0, 163, 255, 0.1);
+}
+
+.usage-guide {
+  color: #ffd700;
+  padding: 10px;
+}
+
+.usage-guide ol {
+  padding-left: 15px;
+}
+
+.usage-guide li {
+  margin-bottom: 8px;
+}
+
+.generate-btn {
+  width: 100%;
+  height: 40px;
+  background: linear-gradient(90deg, #c8ad7f 0%, #ffe7b2 100%);
+  border: none;
+  border-radius: 20px;
+  font-size: 16px;
+  color: #fff;
+  font-weight: bold;
+  box-shadow: 0 2px 8px #c8ad7f33;
+  transition: background 0.2s, color 0.2s;
+  margin-top: 500px;
+}
+
+.generate-btn:disabled {
+  background: linear-gradient(90deg, #e0cfa0 0%, #f5e6c3 100%);
+  opacity: 0.7;
+  color: #fff;
+}
+
+.generate-btn:hover:not(:disabled) {
+  background: linear-gradient(90deg, #ffe7b2 0%, #c8ad7f 100%);
+  color: #c8ad7f;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.loading-icon {
+  font-size: 36px;
+  animation: rotate 1.5s linear infinite;
+  margin-bottom: 16px;
+}
+
+.image-workspace-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.empty-workspace {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.empty-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.empty-message .el-icon {
+  font-size: 48px;
+}
+
+.empty-message p {
+  font-size: 16px;
+  margin: 0;
+}
+
+:deep(.el-collapse) {
+  border: none;
+  background: transparent;
+}
+
+:deep(.el-collapse-item__header) {
+  background: transparent;
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+:deep(.el-collapse-item__content) {
+  background: transparent;
+  color: #fff;
+  padding: 0;
+}
+
+:deep(.el-radio) {
+  margin-right: 20px;
+  margin-bottom: 10px;
+}
+
+:deep(.el-radio__label) {
+  color: white;
+}
+
+:deep(.el-upload-dragger) {
+  background-color: transparent;
+  border: none;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+}
+
+:deep(.el-upload-dragger:hover) {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+:deep(.el-upload-dragger:hover .el-icon) {
+  color: #00a3ff;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 添加标记区域的样式 */
+.mark-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: rgba(0, 163, 255, 0.1);
+  border: 1px solid rgba(0, 163, 255, 0.3);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 15px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #c8ad7f;;
+}
+
+.mark-area:hover {
+  background: #c8ad7f;
+  border-color: rgba(0, 163, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+.mark-area .el-icon {
+  font-size: 16px;
+  color: #c8ad7f;;
+}
+
+.preview-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.change-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.change-overlay .el-icon {
+  font-size: 24px;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.change-overlay span {
+  color: white;
+  font-size: 14px;
+}
+
+.preview-container:hover .change-overlay {
+  opacity: 1;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.upload-placeholder .el-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.upload-placeholder span {
+  font-size: 14px;
+}
+
+.hidden-upload {
+  display: none;
+}
+
+.nav-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+}
+
+.step-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.instructions-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+}
+
+.instructions-content {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  border-radius: 10px;
+  padding: 15px 20px;
+  max-width: 500px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.instructions-content h3 {
+  color: #c8ad7f;
+  font-size: 18px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.instructions-content ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  counter-reset: instruction-counter;
+}
+
+.instructions-content li {
+  color: #c8ad7f;
+  font-size: 14px;
+  line-height: 1.4;
+  margin-bottom: 10px;
+  padding-left: 28px;
+  position: relative;
+  counter-increment: instruction-counter;
+}
+
+.instructions-content li::before {
+  content: counter(instruction-counter);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 20px;
+  height: 20px;
+  background: #c8ad7f;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: white;
+}
+
+/* 弹窗相关样式 */
+.upload-modal-content {
+  padding: 20px 0;
+}
+
+.upload-area {
+  width: 80%;
+  height: 400px;
+  border: 2px dashed transparent;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.03);
+  margin: 0 auto;
+}
+
+.upload-area:hover {
+  border-color: transparent;
+}
+
+.file-preview {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-preview .preview-img {
+  max-width: 95%;
+  max-height: 90%;
+  object-fit: contain;
+  border: none;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+.upload-tip {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 8px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.edit-dialog .el-dialog {
+  border: 2px solid #c8ad7f;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(200, 173, 127, 0.15);
+  background: rgba(30, 30, 30, 0.98);
+  color: #fff;
+  max-width: 95vw;
+  max-height: 95vh;
+}
+
+.edit-modal-content {
+  height: 60vh;
+  overflow: hidden;
+}
+
+.edit-modal-content .image-workspace-container {
+  height: 100%;
+  width: 100%;
+}
+
+/* StyleExtension.vue弹窗样式同步 */
+:deep(.el-dialog) {
+  border: 2px solid #c8ad7f;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(200, 173, 127, 0.15);
+  background: rgba(30, 30, 30, 0.98);
+  color: #fff;
+}
+
+.edit-dialog :deep(.el-dialog) {
+  border: 2px solid #c8ad7f;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(200, 173, 127, 0.15);
+  background: rgba(30, 30, 30, 0.98);
+  color: #fff;
+  max-width: 95vw;
+  max-height: 95vh;
+}
+
+.zoom-icon-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  background: rgba(0,0,0,0.5);
+  border: none;
+  border-radius: 50%;
+  padding: 6px;
+  cursor: pointer;
+  color: #fff;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.zoom-icon-btn:hover {
+  background: #c8ad7f;
+  color: #222;
+}
+.zoom-icon-btn .el-icon {
+  font-size: 20px;
+}
+.zoom-img-container {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+}
+:deep(.el-dialog.zoom-dialog) {
+  background: #fff !important;
+  border: none !important;
+  color: #222 !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.10) !important;
+}
+:deep(.el-dialog.zoom-dialog .el-dialog__body) {
+  background: #fff !important;
+  color: #222 !important;
+}
+:deep(.el-dialog.zoom-dialog .el-dialog__header) {
+  background: #fff !important;
+  color: #222 !important;
+  border-bottom: 1px solid #eee !important;
+}
+
+/* 全屏进度条样式 */
+.progress-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(5px);
+}
+
+/* 全屏Loading样式 */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999999;
+  backdrop-filter: blur(5px);
+  pointer-events: auto;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  color: #fff;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(200, 173, 127, 0.3);
+  border-top: 3px solid #c8ad7f;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-progress {
+  width: 200px;
+}
+
+.loading-percentage {
+  color: #00d4ff;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.loading-text {
+  color: #c8ad7f;
+  font-size: 16px;
+  font-weight: 500;
+}
+</style>
+

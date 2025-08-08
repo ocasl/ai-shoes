@@ -1,0 +1,28 @@
+/* 自定义Element Plus主题 */
+@forward 'element-plus/theme-chalk/src/common/var.scss' with (
+  $colors: (
+    'primary': (
+      'base': #00A3FF,
+    ),
+    'success': (
+      'base': #67c23a,
+    ),
+    'warning': (
+      'base': #e6a23c,
+    ),
+    'danger': (
+      'base': #f56c6c,
+    ),
+    'info': (
+      'base': #909399,
+    ),
+  ),
+  $button-padding-horizontal: (
+    'default': 20px,
+  )
+);
+
+/* 统一的背景配色 */
+.blue-gradient {
+  background: linear-gradient(90deg, #00A3FF, #0AFFFF);
+} 
