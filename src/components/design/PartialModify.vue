@@ -1050,7 +1050,7 @@ function handleTwoChuangSelect(option: any) {
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: url("@/assets/bg.png");
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -1070,7 +1070,7 @@ function handleTwoChuangSelect(option: any) {
 
 .left-panel {
   width: 270px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 8px;
   padding: 10px;
   backdrop-filter: blur(10px);
@@ -1080,7 +1080,7 @@ function handleTwoChuangSelect(option: any) {
 
 .work-area {
   flex: 1;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(248, 248, 248, 0.8);
   border-radius: 10px;
   display: flex;
   justify-content: center;
@@ -1154,9 +1154,10 @@ function handleTwoChuangSelect(option: any) {
 }
 
 .upload-section {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.9);
   border-radius: 8px;
   padding: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .image-preview {
@@ -1171,7 +1172,7 @@ function handleTwoChuangSelect(option: any) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(240, 240, 240, 0.8);
 }
 
 .image-preview:hover {
