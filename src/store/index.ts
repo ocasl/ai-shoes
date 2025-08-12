@@ -10,9 +10,7 @@ interface ShoeDesign {
 
 // AI任务相关状态类型
 interface AiTaskState {
-  promptId: string;
-  clientId: string;
-  server: string;
+  taskId: string;
   taskStatus: string;
   progress: number;
   viewUrls: string[];
@@ -34,9 +32,7 @@ export const useShoeStore = defineStore('shoe', {
     designs: [] as ShoeDesign[],
     currentDesignId: null as number | null,
     aiTask: {
-      promptId: '',
-      clientId: '',
-      server: '',
+      taskId: '',
       taskStatus: '',
       progress: 0,
       viewUrls: [],
@@ -86,10 +82,8 @@ export const useShoeStore = defineStore('shoe', {
     setCurrentDesign(id: number) {
       this.currentDesignId = id
     },
-    setAiTaskInfo({ promptId, clientId, server, taskType }: { promptId: string; clientId: string; server: string; taskType?: string }) {
-      this.aiTask.promptId = promptId
-      this.aiTask.clientId = clientId
-      this.aiTask.server = server
+    setAiTaskInfo({ taskId, taskType }: { taskId: string; taskType?: string }) {
+      this.aiTask.taskId = taskId
       this.aiTask.taskType = taskType || ''
       this.aiTask.taskStatus = 'running'
       this.aiTask.progress = 0
@@ -112,9 +106,7 @@ export const useShoeStore = defineStore('shoe', {
     },
     resetAiTask() {
       this.aiTask = {
-        promptId: '',
-        clientId: '',
-        server: '',
+        taskId: '',
         taskStatus: '',
         progress: 0,
         viewUrls: [],

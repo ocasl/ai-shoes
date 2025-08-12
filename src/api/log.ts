@@ -1,4 +1,3 @@
-import { get } from '../utils/request'
 import axios from 'axios'
 
 // API响应类型
@@ -65,10 +64,10 @@ export function getComfyuiLogs(params: ComfyuiLogQueryParams) {
   // 获取token
   const token = localStorage.getItem('token')
   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
   // 构建查询参数
   const queryParams = new URLSearchParams()
-  
+
   // 添加所有非空参数
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') {
@@ -82,7 +81,7 @@ export function getComfyuiLogs(params: ComfyuiLogQueryParams) {
       }
     }
   })
-  
+
   // 发送请求
   return axios.get(`/api/comfyui/logs?${queryParams.toString()}`, {
     headers: {

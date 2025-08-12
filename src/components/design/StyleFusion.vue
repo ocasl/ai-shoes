@@ -742,15 +742,15 @@ const handleGenerate = async () => {
       viewUrls = result.viewUrls;
     }
 
-    // 优先判断 WebSocket 字段
-    if (result && result.promptId && result.clientId && result.server) {
-      console.log('WebSocket参数:', result.promptId, result.clientId, result.server);
+    // 新的API格式：直接返回taskId
+    if (result && typeof result === 'string') {
+      const taskId = result;
+      console.log('获得taskId:', taskId);
       shoeStore.setAiTaskInfo({
-        promptId: result.promptId,
-        clientId: result.clientId,
-        server: result.server
+        taskId: taskId,
+        taskType: 'style-fusion'
       });
-              startAiTaskWs(result.clientId, result.server, result.promptId, 'style-fusion');
+      startAiTaskWs(taskId, 'style-fusion');
       // 不要直接 return，让 watch 监听 WebSocket 结果
     } else if (viewUrls.length > 0) {
       // 没有 WebSocket 字段才直接处理结果
@@ -1251,7 +1251,6 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   position: relative;
- background: white;
 }
 
 .preview-img {

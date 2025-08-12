@@ -1,4 +1,3 @@
-import { post, get } from '../utils/request'
 import axios from 'axios'
 
 // API响应类型
@@ -201,13 +200,8 @@ export function uploadImage(file: File) {
   const formData = new FormData()
   formData.append('image', file)
   
-  // 优先使用localStorage中的token，如果没有则使用默认token
   const token = localStorage.getItem('token')
-  const bearerToken = token 
-    ? (token.startsWith('Bearer ') ? token : `Bearer ${token}`)
-    : 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJwYXNzd29yZCI6W3siYXV0aG9yaXR5IjoiUk9MRV9BRE1JTiJ9XSwidXNlcm5hbWUiOiJ0ZXN0MDEiLCJleHAiOjc4MDEyNzE5MDZ9.4L8XvJzrS-u-sBuc64fHVpJ7aiVrOq4fPLqT0iYqJtI'
-  
-  console.log('🔍 上传图片 - 使用token:', bearerToken.substring(0, 20) + '...')
+  const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
   
   // 更新为新的API路径
   return axios.post('/api/oss/upload', formData, {
@@ -217,11 +211,11 @@ export function uploadImage(file: File) {
       'Content-Type': 'multipart/form-data',
     }
   }).then(response => {
-    console.log("✅ 上传成功:", response)
+    console.log("上传响应:", response)
     return response.data
   }).catch(error => {
-    console.error("❌ 上传错误:", error)
-    console.error("❌ 错误响应:", error.response?.data)
+    console.error("上传错误:", error)
+    console.error("错误响应:", error.response?.data)
     throw error
   })
 }
@@ -259,11 +253,9 @@ export function feedbackImage(imageId: number | { id: number }) {
   // 确保imageId是一个数字
   const id = typeof imageId === 'object' ? imageId.id : imageId;
   
-  // 优先使用localStorage中的token，如果没有则使用默认token
+  // 使用axios请求图片，现在返回的是JSON格式的URL
   const token = localStorage.getItem('token')
-  const bearerToken = token 
-    ? (token.startsWith('Bearer ') ? token : `Bearer ${token}`)
-    : 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJwYXNzd29yZCI6W3siYXV0aG9yaXR5IjoiUk9MRV9BRE1JTiJ9XSwidXNlcm5hbWUiOiJ0ZXN0MDEiLCJleHAiOjc4MDEyNzE5MDZ9.4L8XvJzrS-u-sBuc64fHVpJ7aiVrOq4fPLqT0iYqJtI'
+  const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
   
   return axios.get(`/api/oss/feedback?imageId=${id}`, {
     headers: {
@@ -401,9 +393,13 @@ export function strhzxs(data: StrhzxsRequest) {
       'Authorization': bearerToken,
       'Content-Type': 'application/json'
     }
-  }).then(async response => {
-    // 处理响应数据
-    return await processResponseUrls(response.data);
+  }).then(response => {
+    console.log('图像融合响应:', response.data)
+    return response.data // 直接返回包含taskld的响应
+  }).catch(error => {
+    console.error('图像融合错误:', error)
+    console.error('错误响应:', error.response?.data)
+    throw error
   })
 }
 
@@ -424,10 +420,9 @@ export function tjtws(data: TjtwsRequest) {
       'Authorization': bearerToken,
       'Content-Type': 'application/json'
     }
-  }).then(async response => {
-    // 处理响应数据
+  }).then(response => {
     console.log('图加图无锁响应:', response.data)
-    return await processResponseUrls(response.data);
+    return response.data // 直接返回包含taskld的响应
   }).catch(error => {
     console.error('图加图无锁错误:', error)
     console.error('错误响应:', error.response?.data)
@@ -454,10 +449,9 @@ export function xdhh(data: XdhhRequest) {
       'Authorization': bearerToken,
       'Content-Type': 'application/json'
     }
-  }).then(async response => {
-    // 处理响应数据
+  }).then(response => {
     console.log('鞋底互换响应:', response.data)
-    return await processResponseUrls(response.data);
+    return response.data // 直接返回包含taskld的响应
   }).catch(error => {
     console.error('鞋底互换错误:', error)
     console.error('错误响应:', error.response?.data)
@@ -467,7 +461,7 @@ export function xdhh(data: XdhhRequest) {
 /**
  * 配色换新API
  * 
- * 接口地址: /api/image/gene/pcxh
+ * 接口地址: /api/image/zdps
  * 
  * @param data PcxhRequest 请求参数
  * @returns Promise 返回生成结果
@@ -481,10 +475,9 @@ export function pcxh(data: PcxhRequest) {
       'Authorization': bearerToken,
       'Content-Type': 'application/json'
     }
-  }).then(async response => {
-    // 处理响应数据
+  }).then(response => {
     console.log('配色换新响应:', response.data)
-    return await processResponseUrls(response.data);
+    return response.data // 直接返回包含taskld的响应
   }).catch(error => {
     console.error('配色换新错误:', error)
     console.error('错误响应:', error.response?.data)
@@ -504,10 +497,9 @@ export function gqfd(data: GqfdRequest) {
       'Authorization': bearerToken,
       'Content-Type': 'application/json'
     }
-  }).then(async response => {
-    // 处理响应数据
+  }).then(response => {
     console.log('高清放大响应:', response.data)
-    return await processResponseUrls(response.data);
+    return response.data // 直接返回包含taskld的响应
   }).catch(error => {
     console.error('高清放大错误:', error)
     console.error('错误响应:', error.response?.data)
@@ -527,10 +519,9 @@ export function xc(data: XcRequest) {
       'Authorization': bearerToken,
       'Content-Type': 'application/json'
     }
-  }).then(async response => {
-    // 处理响应数据
+  }).then(response => {
     console.log('元素消除响应:', response.data)
-    return await processResponseUrls(response.data);
+    return response.data // 直接返回包含taskld的响应
   }).catch(error => {
     console.error('元素消除错误:', error)
     console.error('错误响应:', error.response?.data)
@@ -550,10 +541,9 @@ export function kt(data: KtRequest) {
       'Authorization': bearerToken,
       'Content-Type': 'application/json'
     }
-  }).then(async response => {
-    // 处理响应数据
+  }).then(response => {
     console.log('抠图响应:', response.data)
-    return await processResponseUrls(response.data);
+    return response.data // 直接返回包含taskld的响应
   }).catch(error => {
     console.error('抠图错误:', error)
     console.error('错误响应:', error.response?.data)
@@ -570,10 +560,9 @@ export function qsy(data: QsyRequest) {
       'Authorization': bearerToken,
       'Content-Type': 'application/json'
     }
-  }).then(async response => {
-    // 处理响应数据
+  }).then(response => {
     console.log('去水印响应:', response.data)
-    return await processResponseUrls(response.data);
+    return response.data // 直接返回包含taskld的响应
   }).catch(error => {
     console.error('去水印错误:', error)
     throw error 
@@ -589,10 +578,9 @@ export function xgt(data: XgtRequest) {
       'Authorization': bearerToken,
       'Content-Type': 'application/json'
     }
-  }).then(async response => {
-    // 处理响应数据
+  }).then(response => {
     console.log('线稿图响应:', response.data)
-    return await processResponseUrls(response.data);
+    return response.data // 直接返回包含taskld的响应
   }).catch(error => {
     console.error('线稿图错误:', error)
     throw error
@@ -607,19 +595,14 @@ export function xgt(data: XgtRequest) {
 export function uploadMask(file: File, originalId: string) {
   const formData = new FormData()
   formData.append('image', file)
-  formData.append('originalId', String(originalId))
   
-  // 优先使用localStorage中的token，如果没有则使用默认token
   const token = localStorage.getItem('token')
-  const bearerToken = token 
-    ? (token.startsWith('Bearer ') ? token : `Bearer ${token}`)
-    : 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJwYXNzd29yZCI6W3siYXV0aG9yaXR5IjoiUk9MRV9BRE1JTiJ9XSwidXNlcm5hbWUiOiJ0ZXN0MDEiLCJleHAiOjc4MDEyNzE5MDZ9.4L8XvJzrS-u-sBuc64fHVpJ7aiVrOq4fPLqT0iYqJtI'
+  const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
   
-  // 更新为新的API路径和参数
-  return axios.post(`/api/oss/mask`, formData, {
+  // 根据你提供的API格式，originalId作为查询参数
+  return axios.post(`/api/oss/mask?originalId=${originalId}`, formData, {
     headers: {
       'Authorization': bearerToken,
-      'token': bearerToken,
       'Content-Type': 'multipart/form-data',
     }
   }).then(response => {
@@ -649,10 +632,9 @@ export function tstok(data: TstokRequest) {
       'Authorization': bearerToken,
       'Content-Type': 'application/json'
     }
-  }).then(async response => {
-    // 处理响应数据
+  }).then(response => {
     console.log('图加图OK响应:', response.data)
-    return await processResponseUrls(response.data);
+    return response.data // 直接返回包含taskld的响应
   }).catch(error => {
     console.error('图加图OK错误:', error)
     console.error('错误响应:', error.response?.data)
@@ -677,10 +659,9 @@ export function jbch(data: JbchRequest) {
       'Authorization': bearerToken,
       'Content-Type': 'application/json'
     }
-  }).then(async response => {
-    // 处理响应数据
+  }).then(response => {
     console.log('局部重绘响应:', response.data)
-    return await processResponseUrls(response.data);
+    return response.data // 直接返回包含taskld的响应
   }).catch(error => {
     console.error('局部重绘错误:', error)
     console.error('错误响应:', error.response?.data)
@@ -705,10 +686,9 @@ export function lorewst(data: LorewstRequest) {
       'Authorization': bearerToken,
       'Content-Type': 'application/json'
     }
-  }).then(async response => {
-    // 处理响应数据
+  }).then(response => {
     console.log('Lore文生图响应:', response.data)
-    return await processResponseUrls(response.data);
+    return response.data // 直接返回包含taskld的响应
   }).catch(error => {
     console.error('Lore文生图错误:', error)
     console.error('错误响应:', error.response?.data)
@@ -733,10 +713,9 @@ export function xf(data: XfRequest) {
       'Authorization': bearerToken,
       'Content-Type': 'application/json'
     }
-  }).then(async response => {
-    // 处理响应数据
+  }).then(response => {
     console.log('图片修复响应:', response.data)
-    return await processResponseUrls(response.data);
+    return response.data // 直接返回包含taskld的响应
   }).catch(error => {
     console.error('图片修复错误:', error)
     console.error('错误响应:', error.response?.data)
@@ -822,4 +801,93 @@ export function uploadMaskFromDataUrl(maskDataUrl: string, originalId: number | 
     img.src = maskDataUrl;
   });
 }
+
+/** * 查询任务结果
+ * @param taskld 任务ID
+ * @returns Promise 返回任务结果
+ */
+export function getTaskResult(taskld: string) {
+  const token = localStorage.getItem('token')
+  const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
+  
+  return axios.get(`/api/task/result/${taskld}`, {
+    headers: {
+      'Authorization': bearerToken,
+    }
+  }).then(response => {
+    console.log('查询任务结果响应:', response.data)
+    return response.data
+  }).catch(error => {
+    console.error('查询任务结果错误:', error)
+    throw error
+  })
+}
+
+/**
+ * 查询任务状态
+ * @param taskld 任务ID
+ * @returns Promise 返回任务状态
+ */
+export function getTaskStatus(taskld: string) {
+  const token = localStorage.getItem('token')
+  const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
+  
+  return axios.get(`/api/task/status/${taskld}`, {
+    headers: {
+      'Authorization': bearerToken,
+    }
+  }).then(response => {
+    console.log('查询任务状态响应:', response.data)
+    return response.data
+  }).catch(error => {
+    console.error('查询任务状态错误:', error)
+    throw error
+  })
+}
+
+
+/**
+ * 查询图片结果（专门用于WebSocket任务结果查询）
+ * @param taskld 任务ID
+ * @returns Promise 返回图片结果
+ */
+export function getImageResult(taskld: string) {
+  const token = localStorage.getItem('token')
+  const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
+  
+  return axios.get(`/image/request?taskld=${taskld}`, {
+    headers: {
+      'Authorization': bearerToken,
+    }
+  }).then(response => {
+    console.log('查询图片结果响应:', response.data)
+    return response.data
+  }).catch(error => {
+    console.error('查询图片结果错误:', error)
+    throw error
+  })
+}
+
+/**
+ * 请求等待结果（修正后的API路径）
+ * @param taskld 任务ID
+ * @returns Promise 返回等待结果
+ */
+export function requestWaitResult(taskld: string) {
+  const token = localStorage.getItem('token')
+  const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
+  
+  return axios.get(`/image/request?taskld=${taskld}`, {
+    headers: {
+      'Authorization': bearerToken,
+    }
+  }).then(response => {
+    console.log('请求等待结果响应:', response.data)
+    return response.data
+  }).catch(error => {
+    console.error('请求等待结果错误:', error)
+    throw error
+  })
+}
+
 

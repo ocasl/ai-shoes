@@ -537,18 +537,15 @@ const handleGenerate = async () => {
       // 处理成功响应
       const result = response.data
 
-      // 检查是否有WebSocket任务信息
-      if (result && result.promptId && result.clientId && result.server) {
-        // 设置WebSocket任务信息
-        shoeStore.setAiTaskInfo({
-          promptId: result.promptId,
-          clientId: result.clientId,
-          server: result.server,
-          taskType: 'color' // 明确指定任务类型为配色
-        })
+      // 检查API响应格式 - 新的API格式：直接返回taskId
+      if (result && typeof result === 'string') {
+        const taskId = result;
+        console.log('获得taskId:', taskId);
         
-        // 启动WebSocket连接
-        startAiTaskWs(result.clientId, result.server, result.promptId, 'color')
+        // 启动WebSocket监听（内部会设置store状态）
+        startAiTaskWs(taskId, 'color');
+        
+        ElMessage.success('配色任务已提交，正在处理中...');
       } else {
         // 直接处理结果（兼容旧版本）
         if (result && result.viewUrls && Array.isArray(result.viewUrls)) {

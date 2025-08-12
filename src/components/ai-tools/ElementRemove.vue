@@ -664,16 +664,15 @@ const handleGenerate = async () => {
       // 处理成功响应
       const result = response.data;
 
-      // 检查是否有WebSocket任务信息
-      if (result && result.promptId && result.clientId && result.server) {
-        // 设置任务信息并启动WebSocket监听
-        shoeStore.setAiTaskInfo({
-          promptId: result.promptId,
-          clientId: result.clientId,
-          server: result.server
-        })
-        startAiTaskWs(result.clientId, result.server, result.promptId, 'element-remove')
-        ElMessage.success('任务已提交，正在生成...')
+      // 检查API响应格式 - 新的API格式：直接返回taskId
+      if (result && typeof result === 'string') {
+        const taskId = result;
+        console.log('获得taskId:', taskId);
+        
+        // 启动WebSocket监听（内部会设置store状态）
+        startAiTaskWs(taskId, 'element-remove');
+        
+        ElMessage.success('元素消除任务已提交，正在处理中...');
       } else if (result && result.viewUrls && Array.isArray(result.viewUrls)) {
         // 直接返回结果的情况
         generatedImages.value = result.viewUrls;

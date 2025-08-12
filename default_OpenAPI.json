@@ -1,0 +1,2290 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "comfyui",
+    "description": "comfyui接口文档",
+    "version": "v1.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "任务管理",
+      "description": "任务状态查询"
+    },
+    {
+      "name": "模型模块",
+      "description": "模型模块"
+    },
+    {
+      "name": "sam分割",
+      "description": "sam分割相关接口"
+    },
+    {
+      "name": "图生图",
+      "description": "图生图"
+    },
+    {
+      "name": "用户管理",
+      "description": "管理员-用户管理接口"
+    },
+    {
+      "name": "健康检查",
+      "description": "应用健康状态检查"
+    },
+    {
+      "name": "登录管理",
+      "description": "登录管理"
+    },
+    {
+      "name": "用户个人信息",
+      "description": "用户-用户管理接口"
+    },
+    {
+      "name": "任务队列测试",
+      "description": "测试任务队列功能"
+    },
+    {
+      "name": "文件查看",
+      "description": "文件查看"
+    },
+    {
+      "name": "OSS上传管理",
+      "description": "OSS上传管理"
+    }
+  ],
+  "paths": {
+    "/user/upgrade/{id}/{code}": {
+      "put": {
+        "tags": [
+          "用户个人信息"
+        ],
+        "summary": "根据邀请码升级用户权限",
+        "description": "根据邀请码升级用户权限",
+        "operationId": "upgrade",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "用户id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "用户id"
+            }
+          },
+          {
+            "name": "code",
+            "in": "path",
+            "description": "邀请码id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "邀请码id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/update": {
+      "put": {
+        "tags": [
+          "用户个人信息"
+        ],
+        "summary": "修改用户信息",
+        "description": "修改用户信息",
+        "operationId": "update",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/用户类"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/update": {
+      "put": {
+        "tags": [
+          "用户管理"
+        ],
+        "summary": "修改用户信息",
+        "description": "修改用户信息",
+        "operationId": "update_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/用户类"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/unban/{id}": {
+      "put": {
+        "tags": [
+          "用户管理"
+        ],
+        "summary": "解封用户",
+        "description": "解封用户",
+        "operationId": "unban",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/ban/{id}": {
+      "put": {
+        "tags": [
+          "用户管理"
+        ],
+        "summary": "封禁用户",
+        "description": "封禁用户",
+        "operationId": "ban",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/register": {
+      "post": {
+        "tags": [
+          "用户个人信息"
+        ],
+        "summary": "注册用户",
+        "description": "注册用户",
+        "operationId": "register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/用户类"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test/task/submit": {
+      "post": {
+        "tags": [
+          "任务队列测试"
+        ],
+        "summary": "测试任务提交",
+        "description": "提交一个测试任务到队列",
+        "operationId": "testSubmitTask",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/smsLogin": {
+      "post": {
+        "tags": [
+          "登录管理"
+        ],
+        "summary": "验证码登录",
+        "description": "验证码登录",
+        "operationId": "smslogin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SmsLoginForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sam/segment": {
+      "post": {
+        "tags": [
+          "sam分割"
+        ],
+        "summary": "根据图片ID进行分割",
+        "description": "前端传图片ID，后端调用Python分割接口",
+        "operationId": "segmentByImageId",
+        "parameters": [
+          {
+            "name": "imageId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oss/upload": {
+      "post": {
+        "tags": [
+          "OSS上传管理"
+        ],
+        "summary": "上传图片",
+        "description": "上传图片",
+        "operationId": "uploadImage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string",
+                "description": "图片文件"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oss/mask": {
+      "post": {
+        "tags": [
+          "OSS上传管理"
+        ],
+        "summary": "上传蒙版",
+        "description": "上传蒙版",
+        "operationId": "createMask",
+        "parameters": [
+          {
+            "name": "originalId",
+            "in": "query",
+            "description": "原始文件id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "原始文件id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string",
+                "description": "蒙版图片文件"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/image/zdps": {
+      "post": {
+        "tags": [
+          "图生图"
+        ],
+        "summary": "自动配色",
+        "description": "自动配色",
+        "operationId": "zdpsImage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/自动配色"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/image/xgt": {
+      "post": {
+        "tags": [
+          "图生图"
+        ],
+        "summary": "线稿图",
+        "description": "线稿图",
+        "operationId": "xgtImage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/线稿图"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/image/qsy": {
+      "post": {
+        "tags": [
+          "图生图"
+        ],
+        "summary": "去水印",
+        "description": "去水印",
+        "operationId": "qsyImage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/去水印"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/image/gene/xf": {
+      "post": {
+        "tags": [
+          "图生图"
+        ],
+        "summary": "图片修复",
+        "description": "修复（蒙版）",
+        "operationId": "xfImage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/修复(蒙版)"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/image/gene/xdhh": {
+      "post": {
+        "tags": [
+          "图生图"
+        ],
+        "summary": "鞋底换面",
+        "description": "鞋底互换（蒙版）",
+        "operationId": "xieDiImage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/鞋底互换(蒙版)"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/image/gene/xc": {
+      "post": {
+        "tags": [
+          "图生图"
+        ],
+        "summary": "元素消除",
+        "description": "消除（蒙版）",
+        "operationId": "xcImage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/消除(蒙版)"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/image/gene/tstok": {
+      "post": {
+        "tags": [
+          "图生图"
+        ],
+        "summary": "款式延伸",
+        "description": "图加图OK",
+        "operationId": "tstokImage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/图生图OK"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/image/gene/tjtws": {
+      "post": {
+        "tags": [
+          "图生图"
+        ],
+        "summary": "款式融合",
+        "description": "图加图无锁",
+        "operationId": "tjtwsImage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/图生图无锁"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/image/gene/strhzxs": {
+      "post": {
+        "tags": [
+          "图生图"
+        ],
+        "summary": "款式融合(主体加强)",
+        "description": "图像融合最新锁",
+        "operationId": "strhzxsImage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/图生图最新锁"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/image/gene/lorewst": {
+      "post": {
+        "tags": [
+          "图生图"
+        ],
+        "summary": "文字创款",
+        "description": "Lore文生图",
+        "operationId": "lorewstImage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Lore文生图"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/image/gene/kt": {
+      "post": {
+        "tags": [
+          "图生图"
+        ],
+        "summary": "一键抠图",
+        "description": "抠图",
+        "operationId": "ktImage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/一键抠图"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/image/gene/jbch": {
+      "post": {
+        "tags": [
+          "图生图"
+        ],
+        "summary": "局部修改",
+        "description": "局部重绘（蒙版）",
+        "operationId": "jbchImage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/关键词重绘"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/image/gene/gqfd": {
+      "post": {
+        "tags": [
+          "图生图"
+        ],
+        "summary": "高清放大",
+        "description": "高清放大",
+        "operationId": "gqfdImage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/高清放大"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/invitationCode": {
+      "post": {
+        "tags": [
+          "用户管理"
+        ],
+        "summary": "批量生成邀请码",
+        "description": "批量生成邀请码",
+        "operationId": "invitationCode",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/邀请码VO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/info": {
+      "get": {
+        "tags": [
+          "用户个人信息"
+        ],
+        "summary": "查询用户信息",
+        "description": "查询用户信息",
+        "operationId": "get",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test/task/result/{taskId}": {
+      "get": {
+        "tags": [
+          "任务队列测试"
+        ],
+        "summary": "测试任务结果查询",
+        "description": "查询测试任务的结果",
+        "operationId": "testGetTaskResult",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test/task/queue/status": {
+      "get": {
+        "tags": [
+          "任务队列测试"
+        ],
+        "summary": "检查队列状态",
+        "description": "检查Redis队列的状态",
+        "operationId": "checkQueueStatus",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/task/status/{taskId}": {
+      "get": {
+        "tags": [
+          "任务管理"
+        ],
+        "summary": "查询任务状态",
+        "description": "查询任务执行状态",
+        "operationId": "getTaskStatus",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/task/result/{taskId}": {
+      "get": {
+        "tags": [
+          "任务管理"
+        ],
+        "summary": "查询任务结果",
+        "description": "查询任务执行结果",
+        "operationId": "getTaskResult",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sendSms": {
+      "get": {
+        "tags": [
+          "登录管理"
+        ],
+        "summary": "发送短信",
+        "description": "发送短信",
+        "operationId": "smsLogin",
+        "parameters": [
+          {
+            "name": "phone",
+            "in": "query",
+            "description": "手机号",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "手机号"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oss/page": {
+      "get": {
+        "tags": [
+          "OSS上传管理"
+        ],
+        "summary": "分页查询OSS上传日志",
+        "operationId": "pageImageLog",
+        "parameters": [
+          {
+            "name": "pageVo",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/图片上传日志表"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oss/feedback": {
+      "get": {
+        "tags": [
+          "OSS上传管理"
+        ],
+        "summary": "回显图片",
+        "description": "回显图片",
+        "operationId": "getImage",
+        "parameters": [
+          {
+            "name": "imageId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lore/list": {
+      "get": {
+        "tags": [
+          "模型模块"
+        ],
+        "summary": "查询所有的模型",
+        "description": "查询所有的模型",
+        "operationId": "getAllLore",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/image/task/result/{taskId}": {
+      "get": {
+        "tags": [
+          "图生图"
+        ],
+        "summary": "查询任务结果",
+        "description": "查询任务结果",
+        "operationId": "getTaskResult_1",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/image/request": {
+      "get": {
+        "tags": [
+          "图生图"
+        ],
+        "summary": "请求等待结果",
+        "description": "请求等待结果",
+        "operationId": "request",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/check": {
+      "get": {
+        "tags": [
+          "健康检查"
+        ],
+        "summary": "健康检查",
+        "description": "检查应用是否正常运行",
+        "operationId": "healthCheck",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/file/view": {
+      "get": {
+        "tags": [
+          "文件查看"
+        ],
+        "summary": "查看文件",
+        "description": "查看文件",
+        "operationId": "viewFile",
+        "parameters": [
+          {
+            "name": "serverId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subfolder",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "byte"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/comfyui/logs": {
+      "get": {
+        "tags": [
+          "ComfyUI调用日志管理"
+        ],
+        "summary": "分页查询ComfyUI调用日志",
+        "operationId": "pageComfyuiLogs",
+        "parameters": [
+          {
+            "name": "pageVo",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ComfyUI 调用日志分页查询 VO"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/list": {
+      "get": {
+        "tags": [
+          "用户管理"
+        ],
+        "summary": "查询所有用户信息",
+        "description": "查询所有用户信息",
+        "operationId": "list",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/用户类"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/invitationCode/list": {
+      "get": {
+        "tags": [
+          "用户管理"
+        ],
+        "summary": "批量查询未使用的邀请码",
+        "description": "批量查询未使用的邀请码",
+        "operationId": "invitationCode_1",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/邀请码类"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/get/{id}": {
+      "get": {
+        "tags": [
+          "用户管理"
+        ],
+        "summary": "查询用户信息",
+        "description": "查询用户信息",
+        "operationId": "get_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/用户类"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/delete/{id}": {
+      "delete": {
+        "tags": [
+          "用户管理"
+        ],
+        "summary": "删除用户信息",
+        "description": "删除用户信息",
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/通用返回对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "通用返回对象": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "refType": null
+          },
+          "msg": {
+            "type": "string",
+            "refType": null
+          },
+          "data": {
+            "type": "object",
+            "refType": "object"
+          }
+        },
+        "description": "通用返回对象"
+      },
+      "用户类": {
+        "required": [
+          "nickname",
+          "password",
+          "phone",
+          "username"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "主键",
+            "format": "int32",
+            "readOnly": true,
+            "refType": null
+          },
+          "uid": {
+            "type": "string",
+            "description": "用户唯一标识",
+            "readOnly": true,
+            "refType": null
+          },
+          "username": {
+            "type": "string",
+            "description": "用户名",
+            "refType": null
+          },
+          "password": {
+            "maxLength": 20,
+            "minLength": 1,
+            "type": "string",
+            "description": "密码",
+            "refType": null
+          },
+          "nickname": {
+            "type": "string",
+            "description": "昵称",
+            "refType": null
+          },
+          "sex": {
+            "type": "integer",
+            "description": "性别,0:女,1:男,2:未知",
+            "format": "int32",
+            "refType": null
+          },
+          "avatar": {
+            "type": "string",
+            "description": "头像",
+            "refType": null
+          },
+          "phone": {
+            "pattern": "^1[3-9]\\d{9}$",
+            "type": "string",
+            "description": "手机号",
+            "refType": null
+          },
+          "role": {
+            "type": "string",
+            "description": "角色,VISITOR:访客,MEMBER:会员,ADMIN:管理员",
+            "readOnly": true,
+            "refType": null
+          },
+          "remark": {
+            "type": "string",
+            "description": "备注",
+            "readOnly": true,
+            "refType": null
+          },
+          "expireTime": {
+            "type": "string",
+            "description": "过期时间",
+            "format": "date-time",
+            "readOnly": true,
+            "refType": null
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "状态,0:禁用,1:正常",
+            "readOnly": true,
+            "refType": null
+          },
+          "deleted": {
+            "type": "integer",
+            "description": "是否删除,0:否,1:是",
+            "format": "int32",
+            "readOnly": true,
+            "refType": null
+          },
+          "updateTime": {
+            "type": "string",
+            "description": "更新时间",
+            "format": "date-time",
+            "readOnly": true,
+            "refType": null
+          },
+          "createTime": {
+            "type": "string",
+            "description": "创建时间",
+            "format": "date-time",
+            "readOnly": true,
+            "refType": null
+          },
+          "creator": {
+            "type": "string",
+            "description": "创建人",
+            "readOnly": true,
+            "refType": null
+          },
+          "updater": {
+            "type": "string",
+            "description": "更新人",
+            "readOnly": true,
+            "refType": null
+          },
+          "smsCode": {
+            "type": "string",
+            "description": "短信验证码",
+            "refType": null
+          },
+          "admin": {
+            "type": "boolean",
+            "refType": null
+          },
+          "accountNonLocked": {
+            "type": "boolean",
+            "refType": null
+          },
+          "accountNonExpired": {
+            "type": "boolean",
+            "refType": null
+          },
+          "credentialsNonExpired": {
+            "type": "boolean",
+            "refType": null
+          }
+        }
+      },
+      "SmsLoginForm": {
+        "required": [
+          "code",
+          "phone"
+        ],
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "refType": null
+          },
+          "code": {
+            "type": "string",
+            "refType": null
+          }
+        }
+      },
+      "自动配色": {
+        "required": [
+          "imageId"
+        ],
+        "type": "object",
+        "properties": {
+          "imageId": {
+            "type": "integer",
+            "description": "鞋面图",
+            "format": "int32",
+            "refType": null
+          },
+          "prompt": {
+            "type": "string",
+            "description": "关键词",
+            "refType": null
+          }
+        },
+        "description": "自动配色"
+      },
+      "线稿图": {
+        "required": [
+          "imageId"
+        ],
+        "type": "object",
+        "properties": {
+          "imageId": {
+            "type": "integer",
+            "description": "主图",
+            "format": "int32",
+            "refType": null
+          }
+        },
+        "description": "线稿图"
+      },
+      "去水印": {
+        "required": [
+          "imageId"
+        ],
+        "type": "object",
+        "properties": {
+          "imageId": {
+            "type": "integer",
+            "description": "主图",
+            "format": "int32",
+            "refType": null
+          }
+        },
+        "description": "去水印"
+      },
+      "修复(蒙版)": {
+        "required": [
+          "imageId",
+          "isMask"
+        ],
+        "type": "object",
+        "properties": {
+          "imageId": {
+            "type": "integer",
+            "description": "主图",
+            "format": "int32",
+            "refType": null
+          },
+          "isMask": {
+            "type": "integer",
+            "description": "是否是蒙版",
+            "format": "int32",
+            "refType": null
+          }
+        },
+        "description": "修复(蒙版)"
+      },
+      "鞋底互换(蒙版)": {
+        "required": [
+          "majorId",
+          "maskStates",
+          "minorId"
+        ],
+        "type": "object",
+        "properties": {
+          "majorId": {
+            "type": "integer",
+            "description": "鞋面图",
+            "format": "int32",
+            "refType": null
+          },
+          "minorId": {
+            "type": "integer",
+            "description": "鞋底图",
+            "format": "int32",
+            "refType": null
+          },
+          "maskStates": {
+            "type": "integer",
+            "description": "图片蒙蔽状态{0:不蒙蔽,1:蒙蔽斜面图,2:蒙蔽鞋底图,3:蒙蔽两图}",
+            "format": "int32",
+            "refType": null
+          }
+        },
+        "description": "鞋底互换(蒙版)"
+      },
+      "消除(蒙版)": {
+        "required": [
+          "imageId",
+          "isMask"
+        ],
+        "type": "object",
+        "properties": {
+          "imageId": {
+            "type": "integer",
+            "description": "主图",
+            "format": "int32",
+            "refType": null
+          },
+          "isMask": {
+            "type": "integer",
+            "description": "是否是蒙版",
+            "format": "int32",
+            "refType": null
+          }
+        },
+        "description": "消除(蒙版)"
+      },
+      "图生图OK": {
+        "required": [
+          "denoise",
+          "imageId",
+          "loreName"
+        ],
+        "type": "object",
+        "properties": {
+          "imageId": {
+            "type": "integer",
+            "description": "主图",
+            "format": "int32",
+            "refType": null
+          },
+          "loreName": {
+            "type": "string",
+            "description": "模型名称",
+            "refType": null
+          },
+          "denoise": {
+            "maximum": 10,
+            "minimum": 1,
+            "type": "number",
+            "description": "噪点强度{0-1}",
+            "format": "float",
+            "refType": null
+          }
+        },
+        "description": "图生图OK"
+      },
+      "图生图无锁": {
+        "required": [
+          "loreName",
+          "majorId",
+          "majorStrength",
+          "minorId",
+          "minorStrength"
+        ],
+        "type": "object",
+        "properties": {
+          "loreName": {
+            "type": "string",
+            "description": "模型名称",
+            "refType": null
+          },
+          "majorId": {
+            "type": "integer",
+            "description": "主图",
+            "format": "int32",
+            "refType": null
+          },
+          "minorId": {
+            "type": "integer",
+            "description": "附图",
+            "format": "int32",
+            "refType": null
+          },
+          "majorStrength": {
+            "maximum": 10,
+            "minimum": 0,
+            "type": "number",
+            "description": "主图强度",
+            "format": "double",
+            "refType": null
+          },
+          "minorStrength": {
+            "maximum": 10,
+            "minimum": 0,
+            "type": "number",
+            "description": "附图强度",
+            "format": "double",
+            "refType": null
+          }
+        },
+        "description": "图生图模型"
+      },
+      "图生图最新锁": {
+        "required": [
+          "loreName",
+          "majorId",
+          "majorStrength",
+          "minorId",
+          "minorStrength",
+          "structuralStrength"
+        ],
+        "type": "object",
+        "properties": {
+          "loreName": {
+            "type": "string",
+            "description": "模型名称",
+            "refType": null
+          },
+          "majorId": {
+            "type": "integer",
+            "description": "主图Id",
+            "format": "int32",
+            "refType": null
+          },
+          "minorId": {
+            "type": "integer",
+            "description": "附图Id",
+            "format": "int32",
+            "refType": null
+          },
+          "majorStrength": {
+            "maximum": 10,
+            "minimum": 0,
+            "type": "number",
+            "description": "主图强度",
+            "format": "double",
+            "refType": null
+          },
+          "minorStrength": {
+            "maximum": 10,
+            "minimum": 0,
+            "type": "number",
+            "description": "附图强度",
+            "format": "double",
+            "refType": null
+          },
+          "structuralStrength": {
+            "maximum": 10,
+            "minimum": 0,
+            "type": "number",
+            "description": "结构强度",
+            "format": "double",
+            "refType": null
+          }
+        },
+        "description": "图生图最新锁"
+      },
+      "Lore文生图": {
+        "required": [
+          "loreName",
+          "prompt"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "关键词",
+            "refType": null
+          },
+          "loreName": {
+            "type": "string",
+            "description": "模型名称",
+            "refType": null
+          }
+        },
+        "description": "Lore文生图"
+      },
+      "一键抠图": {
+        "required": [
+          "imageId"
+        ],
+        "type": "object",
+        "properties": {
+          "imageId": {
+            "type": "integer",
+            "description": "图像",
+            "format": "int32",
+            "refType": null
+          }
+        },
+        "description": "一键抠图"
+      },
+      "关键词重绘": {
+        "required": [
+          "isMask",
+          "majorId",
+          "minorId"
+        ],
+        "type": "object",
+        "properties": {
+          "majorId": {
+            "type": "integer",
+            "description": "主图",
+            "format": "int32",
+            "refType": null
+          },
+          "minorId": {
+            "type": "integer",
+            "description": "附图",
+            "format": "int32",
+            "refType": null
+          },
+          "prompt": {
+            "type": "string",
+            "description": "关键词",
+            "refType": null
+          },
+          "isMask": {
+            "type": "integer",
+            "description": "图片蒙蔽状态{0:不蒙蔽,1:主图蒙蔽,2:二图蒙蔽}",
+            "format": "int32",
+            "refType": null
+          }
+        },
+        "description": "关键词重绘"
+      },
+      "高清放大": {
+        "required": [
+          "imageId"
+        ],
+        "type": "object",
+        "properties": {
+          "imageId": {
+            "type": "integer",
+            "description": "主图",
+            "format": "int32",
+            "refType": null
+          }
+        },
+        "description": "高清放大"
+      },
+      "邀请码VO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "user",
+            "format": "int64",
+            "refType": null
+          },
+          "code": {
+            "type": "string",
+            "description": "code",
+            "refType": null
+          },
+          "userId": {
+            "type": "integer",
+            "description": "userId",
+            "format": "int32",
+            "refType": null
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "过期时间",
+            "format": "date-time",
+            "refType": null
+          },
+          "usedAt": {
+            "type": "integer",
+            "description": "可使用时间(单位天)",
+            "format": "int32",
+            "refType": null
+          },
+          "isActive": {
+            "type": "integer",
+            "description": "是否激活",
+            "format": "int32",
+            "refType": null
+          },
+          "createTime": {
+            "type": "string",
+            "description": "创建时间",
+            "format": "date-time",
+            "refType": null
+          },
+          "updateTime": {
+            "type": "string",
+            "description": "更新时间",
+            "format": "date-time",
+            "refType": null
+          },
+          "creator": {
+            "type": "string",
+            "description": "创建者",
+            "refType": null
+          },
+          "updater": {
+            "type": "string",
+            "description": "更新者",
+            "refType": null
+          },
+          "remark": {
+            "type": "string",
+            "description": "备注",
+            "refType": null
+          },
+          "deleted": {
+            "type": "integer",
+            "description": "是否删除",
+            "format": "int32",
+            "refType": null
+          },
+          "number": {
+            "type": "integer",
+            "description": "生成邀请码数量",
+            "format": "int32",
+            "refType": null
+          }
+        }
+      },
+      "图片上传日志表": {
+        "required": [
+          "pageNum",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "orderBy": {
+            "type": "integer",
+            "description": "排序字段{0:根据example的字段排序，1:根据耗时排序}",
+            "format": "int32",
+            "refType": null
+          },
+          "begin": {
+            "type": "string",
+            "description": "开始时间",
+            "format": "date-time",
+            "refType": null
+          },
+          "end": {
+            "type": "string",
+            "description": "结束时间",
+            "format": "date-time",
+            "refType": null
+          },
+          "pageNum": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "页码，从 1 开始",
+            "format": "int32",
+            "example": 1,
+            "refType": null
+          },
+          "pageSize": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+            "description": "每页条数，最大值为 100",
+            "format": "int32",
+            "example": 10,
+            "refType": null
+          },
+          "id": {
+            "type": "integer",
+            "description": "主键",
+            "format": "int64",
+            "refType": null
+          },
+          "userId": {
+            "type": "integer",
+            "description": "上传用户ID（关联用户表）",
+            "format": "int64",
+            "refType": null
+          },
+          "username": {
+            "type": "string",
+            "description": "上传用户名",
+            "refType": null
+          },
+          "nickname": {
+            "type": "string",
+            "description": "用户简称",
+            "refType": null
+          },
+          "role": {
+            "type": "string",
+            "description": "上传用户角色",
+            "refType": null
+          },
+          "ossPath": {
+            "type": "string",
+            "description": "oss文件存储路径",
+            "refType": null
+          },
+          "ossName": {
+            "type": "string",
+            "description": "oss文件名",
+            "refType": null
+          },
+          "cfUploadIds": {
+            "type": "string",
+            "description": "comfyui上传表ids",
+            "refType": null
+          },
+          "originalId": {
+            "type": "integer",
+            "description": "蒙版原始文件ID",
+            "format": "int32",
+            "refType": null
+          },
+          "updateTime": {
+            "type": "string",
+            "description": "更新时间",
+            "format": "date-time",
+            "refType": null
+          },
+          "createTime": {
+            "type": "string",
+            "description": "创建时间",
+            "format": "date-time",
+            "refType": null
+          },
+          "remark": {
+            "type": "string",
+            "description": "备注",
+            "refType": null
+          },
+          "deleted": {
+            "type": "integer",
+            "description": "逻辑删除",
+            "format": "int32",
+            "refType": null
+          },
+          "uid": {
+            "type": "string",
+            "description": "用户唯一标识",
+            "refType": null
+          }
+        },
+        "description": "图片上传日志表"
+      },
+      "ComfyUI 调用日志分页查询 VO": {
+        "required": [
+          "pageNum",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "orderBy": {
+            "type": "integer",
+            "description": "排序字段{0:根据example的字段排序，1:根据耗时排序}",
+            "format": "int32",
+            "refType": null
+          },
+          "begin": {
+            "type": "string",
+            "description": "开始时间",
+            "format": "date-time",
+            "refType": null
+          },
+          "end": {
+            "type": "string",
+            "description": "结束时间",
+            "format": "date-time",
+            "refType": null
+          },
+          "pageNum": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "页码，从 1 开始",
+            "format": "int32",
+            "example": 1,
+            "refType": null
+          },
+          "pageSize": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+            "description": "每页条数，最大值为 100",
+            "format": "int32",
+            "example": 10,
+            "refType": null
+          },
+          "uid": {
+            "type": "string",
+            "description": "用户唯一标识",
+            "refType": null
+          },
+          "username": {
+            "type": "string",
+            "description": "用户名",
+            "example": "testuser",
+            "refType": null
+          },
+          "nickname": {
+            "type": "string",
+            "description": "用户昵称",
+            "example": "测试用户",
+            "refType": null
+          },
+          "methodName": {
+            "type": "string",
+            "description": "方法名",
+            "example": "strhzxsImage",
+            "refType": null
+          },
+          "state": {
+            "type": "string",
+            "description": "状态",
+            "example": "1",
+            "refType": null
+          }
+        }
+      },
+      "邀请码类": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "user",
+            "format": "int64",
+            "refType": null
+          },
+          "code": {
+            "type": "string",
+            "description": "code",
+            "refType": null
+          },
+          "userId": {
+            "type": "integer",
+            "description": "userId",
+            "format": "int32",
+            "refType": null
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "过期时间",
+            "format": "date-time",
+            "refType": null
+          },
+          "usedAt": {
+            "type": "integer",
+            "description": "可使用时间(单位天)",
+            "format": "int32",
+            "refType": null
+          },
+          "isActive": {
+            "type": "integer",
+            "description": "是否激活",
+            "format": "int32",
+            "refType": null
+          },
+          "createTime": {
+            "type": "string",
+            "description": "创建时间",
+            "format": "date-time",
+            "refType": null
+          },
+          "updateTime": {
+            "type": "string",
+            "description": "更新时间",
+            "format": "date-time",
+            "refType": null
+          },
+          "creator": {
+            "type": "string",
+            "description": "创建者",
+            "refType": null
+          },
+          "updater": {
+            "type": "string",
+            "description": "更新者",
+            "refType": null
+          },
+          "remark": {
+            "type": "string",
+            "description": "备注",
+            "refType": null
+          },
+          "deleted": {
+            "type": "integer",
+            "description": "是否删除",
+            "format": "int32",
+            "refType": null
+          }
+        }
+      }
+    }
+  }
+}

@@ -680,8 +680,75 @@
   position: relative;
   overflow: hidden;
   display: flex;
+  flex-direction: column;
+}
+
+/* 蒙版控制栏 - 顶部 */
+.mask-controls-top {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 12px 20px;
+  border-radius: 8px 8px 0 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 20;
+}
+
+.mask-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.mask-size-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: white;
+  font-size: 14px;
+}
+
+.mask-size-control label {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  min-width: 80px;
+}
+
+.mask-size-control span {
+  color: #c8ad7f;
+  font-weight: bold;
+  min-width: 40px;
+}
+
+.mask-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.mask-buttons .el-button {
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.mask-buttons .el-button--primary {
+  background: #c8ad7f;
+  border-color: #c8ad7f;
+}
+
+.mask-buttons .el-button--primary:hover {
+  background: #d4b888;
+  border-color: #d4b888;
+}
+
+/* 图片和画布区域 */
+.mask-image-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
   justify-content: center;
   align-items: center;
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .mask-image {

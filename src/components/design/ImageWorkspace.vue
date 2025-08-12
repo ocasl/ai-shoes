@@ -693,6 +693,100 @@ const shoeStore = useShoeStore()
 // 生成唯一的组件ID，用于区分不同的ImageWorkspace实例
 const componentId = ref(`image-workspace-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
 
+// 在ImageWorkspace中查询任务结果的函数
+const queryTaskResultInWorkspace = async (taskId: string, retryCount = 0) => {
+  const maxRetries = 5; // 最多重试5次
+  const retryDelay = 500; // 每次重试间隔500ms
+
+  try {
+    console.log(`🔍 [ImageWorkspace] 查询任务结果 (第${retryCount + 1}次):`, taskId);
+    
+    const requestUrl = `/api/image/request?taskId=${taskId}`;
+    const token = localStorage.getItem('token');
+    const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`;
+
+    const response = await fetch(requestUrl, {
+      headers: {
+        'Authorization': bearerToken,
+      }
+    });
+
+    console.log('📡 [ImageWorkspace] 查询响应状态:', response.status);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('📸 [ImageWorkspace] 查询结果:', data);
+
+    if (data.code === 200 && data.data) {
+      // 检查返回的图片数据
+      const imageUrls = data.data.images || data.data.viewUrls || data.data.ossUrls || [];
+      const ossIds = data.data.ossIds || [];
+
+      if (imageUrls && Array.isArray(imageUrls) && imageUrls.length > 0) {
+        console.log('✅ [ImageWorkspace] 查询成功，获取到图片链接:', imageUrls);
+        
+        // 使用第一张图片作为抠图结果
+        const segmentedImageUrl = imageUrls[0];
+        
+        // 更新编辑台图片
+        editingImageUrl.value = segmentedImageUrl;
+        hasEdits.value = true;
+
+        // 保存一键抠图返回的ossId
+        const ossId = ossIds && ossIds.length > 0 ? ossIds[0] : undefined;
+        segmentationOssId.value = ossId;
+        isSegmentationOnly.value = true;
+
+        // 设置编辑信息，包含图片ID
+        editedImageInfo.value = {
+          url: segmentedImageUrl,
+          id: ossId // 保存ossId作为图片ID
+        };
+
+        // 设置当前工具为抠图
+        currentTool.value = 'segmentation';
+
+        // 设置全局状态，让其他功能使用抠图后的ossId
+        if (ossId) {
+          shoeStore.setSegmentedImageId(ossId);
+          console.log('🌐 [ImageWorkspace] 已设置全局抠图图片ID:', ossId);
+        }
+
+        ElMessage.success('抠图完成');
+        return;
+      }
+    }
+
+    // 如果没有结果且还有重试机会，则重试
+    if (retryCount < maxRetries) {
+      console.log(`⏳ [ImageWorkspace] 暂无结果，${retryDelay}ms后进行第${retryCount + 2}次重试...`);
+      setTimeout(() => {
+        queryTaskResultInWorkspace(taskId, retryCount + 1);
+      }, retryDelay);
+    } else {
+      console.error('❌ [ImageWorkspace] 查询已达最大重试次数，停止重试');
+      ElMessage.error('抠图完成但获取结果失败，请重试');
+    }
+
+  } catch (error) {
+    console.error(`❌ [ImageWorkspace] 查询失败 (第${retryCount + 1}次):`, error);
+    
+    // 如果还有重试机会，等待后重试
+    if (retryCount < maxRetries) {
+      console.log(`🔄 [ImageWorkspace] ${retryDelay}ms后进行第${retryCount + 2}次重试...`);
+      setTimeout(() => {
+        queryTaskResultInWorkspace(taskId, retryCount + 1);
+      }, retryDelay);
+    } else {
+      console.error('❌ [ImageWorkspace] 查询已达最大重试次数，停止重试');
+      ElMessage.error('查询结果失败，请重试');
+    }
+  }
+};
+
 // 监听 WebSocket 返回的图片结果
 watch(() => shoeStore.aiTaskImages, (newImages) => {
   if (newImages && newImages.length > 0) {
@@ -2993,10 +3087,24 @@ const handleSegmentation = async () => {
     }
 
     const response = await kt(requestData)
+    console.log('抠图响应:', response)
 
     if (response.code === 0 || response.code === 200) {
       const result = response.data
-      // 优先检查 ossUrls，兼容 viewUrls
+      console.log('抠图API返回的data:', result)
+      console.log('data类型:', typeof result)
+      
+      // 检查新的API格式：直接返回taskId
+      if (result && typeof result === 'string') {
+        const taskId = result;
+        console.log('获得taskId:', taskId);
+        
+        // 直接查询结果，不使用WebSocket（抠图很快）
+        await queryTaskResultInWorkspace(taskId);
+        return;
+      }
+      
+      // 兼容老格式：检查 ossUrls 或 viewUrls
       if (result && (result.ossUrls || result.viewUrls)) {
         const imageUrls = result.ossUrls || result.viewUrls
 
@@ -3047,7 +3155,12 @@ const handleSegmentation = async () => {
       // 如果有 promptId，启动 WebSocket
       if (result && result.promptId) {
         console.log('启动WebSocket监听:', result.promptId)
-        startAiTaskWs(result.clientId, result.server, result.promptId, 'cutout')
+        // 检查API响应格式 - 新的API格式：直接返回taskId
+        if (result && typeof result === 'string') {
+          const taskId = result;
+          console.log('获得taskId:', taskId);
+          startAiTaskWs(taskId, 'cutout');
+        }
         return
       }
 

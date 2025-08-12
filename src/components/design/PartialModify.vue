@@ -4,13 +4,8 @@
     <div v-if="shoeStore.aiTaskStatus === 'running'" class="loading-overlay">
       <div class="loading-container">
         <div class="loading-spinner"></div>
-        <el-progress 
-          :percentage="shoeStore.aiTaskProgress" 
-          :stroke-width="8"
-          :show-text="false"
-          color="#c8ad7f"
-          class="loading-progress"
-        />
+        <el-progress :percentage="shoeStore.aiTaskProgress" :stroke-width="8" :show-text="false" color="#c8ad7f"
+          class="loading-progress" />
         <div class="loading-percentage">{{ shoeStore.aiTaskProgress }}%</div>
         <div class="loading-text">AI任务执行中</div>
       </div>
@@ -24,39 +19,48 @@
             <span class="step-title">Step 1</span>
             <span class="step-desc">上传鞋底的鞋款</span>
             <el-tooltip content="帮助信息" placement="top">
-              <el-icon><QuestionFilled /></el-icon>
+              <el-icon>
+                <QuestionFilled />
+              </el-icon>
             </el-tooltip>
             <span v-if="mainImage" class="step-status">
-              <el-icon><Check /></el-icon>
+              <el-icon>
+                <Check />
+              </el-icon>
             </span>
           </div>
-          
+
           <div class="upload-section">
             <div class="image-preview" @click="handleMainUploadClick">
               <div v-if="mainImage" class="preview-container">
                 <img :src="mainImage" alt="鞋面图预览" class="preview-img" />
                 <div class="change-overlay">
-                <el-icon><Plus /></el-icon>
+                  <el-icon>
+                    <Plus />
+                  </el-icon>
                   <span>更换图片</span>
                 </div>
                 <button class="zoom-icon-btn" @click.stop="showZoomDialogMain = true">
-                  <el-icon><ZoomIn /></el-icon>
+                  <el-icon>
+                    <ZoomIn />
+                  </el-icon>
                 </button>
               </div>
               <div v-else class="upload-placeholder">
-                <el-icon><Plus /></el-icon>
+                <el-icon>
+                  <Plus />
+                </el-icon>
                 <span>点击上传图片</span>
               </div>
-              <input ref="fileInputMain" type="file" accept="image/*" style="display:none" @change="handleMainFileSelect" />
+              <input ref="fileInputMain" type="file" accept="image/*" style="display:none"
+                @change="handleMainFileSelect" />
             </div>
 
             <!-- 添加标记可选区域按钮 -->
-            <div
-              v-if="mainImage"
-              class="mark-area"
-              @click="handleMarkArea"
-            >
-              <el-icon><EditPen /></el-icon>
+            <div v-if="mainImage" class="mark-area" @click="handleMarkArea">
+              <el-icon>
+                <EditPen />
+              </el-icon>
               <span>标记可选区域</span>
             </div>
           </div>
@@ -68,39 +72,48 @@
             <span class="step-title">Step 2</span>
             <span class="step-desc">上传鞋面的鞋款</span>
             <el-tooltip content="帮助信息" placement="top">
-              <el-icon><QuestionFilled /></el-icon>
+              <el-icon>
+                <QuestionFilled />
+              </el-icon>
             </el-tooltip>
             <span v-if="referenceImage" class="step-status">
-              <el-icon><Check /></el-icon>
+              <el-icon>
+                <Check />
+              </el-icon>
             </span>
           </div>
-          
+
           <div class="upload-section">
             <div class="image-preview" @click="handleReferenceUploadClick">
               <div v-if="referenceImage" class="preview-container">
                 <img :src="referenceImage" alt="鞋底图预览" class="preview-img" />
                 <div class="change-overlay">
-                  <el-icon><Plus /></el-icon>
+                  <el-icon>
+                    <Plus />
+                  </el-icon>
                   <span>更换图片</span>
                 </div>
                 <button class="zoom-icon-btn" @click.stop="showZoomDialogReference = true">
-                  <el-icon><ZoomIn /></el-icon>
+                  <el-icon>
+                    <ZoomIn />
+                  </el-icon>
                 </button>
               </div>
               <div v-else class="upload-placeholder">
-                <el-icon><Plus /></el-icon>
+                <el-icon>
+                  <Plus />
+                </el-icon>
                 <span>点击上传图片</span>
               </div>
-              <input ref="fileInputReference" type="file" accept="image/*" style="display:none" @change="handleReferenceFileSelect" />
+              <input ref="fileInputReference" type="file" accept="image/*" style="display:none"
+                @change="handleReferenceFileSelect" />
             </div>
 
             <!-- 添加标记可选区域按钮 -->
-            <div
-              v-if="referenceImage"
-              class="mark-area"
-              @click="showSelectionOptions(2)"
-            >
-              <el-icon><EditPen /></el-icon>
+            <div v-if="referenceImage" class="mark-area" @click="showSelectionOptions(2)">
+              <el-icon>
+                <EditPen />
+              </el-icon>
               <span>标记可选区域</span>
             </div>
           </div>
@@ -111,14 +124,8 @@
       <div class="work-area">
         <template v-if="isViewingResults">
           <div class="image-workspace-container">
-            <ImageWorkspaceComp
-              :is-view-results="true"
-              :result-images="resultDialogImages"
-              :image-url="mainImage"
-              :original-image-name="mainImageName"
-              @exit-results="exitResultsView"
-              ref="resultsWorkspaceRef"
-            />
+            <ImageWorkspaceComp :is-view-results="true" :result-images="resultDialogImages" :image-url="mainImage"
+              :original-image-name="mainImageName" @exit-results="exitResultsView" ref="resultsWorkspaceRef" />
           </div>
         </template>
         <template v-else>
@@ -138,18 +145,16 @@
             <Suspense v-if="isEditingMainImage">
               <template #default>
                 <div class="image-workspace-container">
-                  <ImageWorkspaceComp
-                    :image-url="mainImage"
-                    :original-image-name="mainImageName"
-                    @image-edited="handleMainImageEdited"
-                    @editing-completed="completeStep(1)"
-                    ref="mainImageWorkspaceRef"
-                  />
+                  <ImageWorkspaceComp :image-url="mainImage" :original-image-name="mainImageName"
+                    @image-edited="handleMainImageEdited" @editing-completed="completeStep(1)"
+                    ref="mainImageWorkspaceRef" />
                 </div>
               </template>
               <template #fallback>
                 <div class="loading-state">
-                  <el-icon class="loading-icon"><Loading /></el-icon>
+                  <el-icon class="loading-icon">
+                    <Loading />
+                  </el-icon>
                   <p>加载中...</p>
                 </div>
               </template>
@@ -157,18 +162,16 @@
             <Suspense v-else-if="isEditingReferenceImage">
               <template #default>
                 <div class="image-workspace-container">
-                  <ImageWorkspaceComp
-                    :image-url="referenceImage"
-                    :original-image-name="referenceImageName"
-                    @image-edited="handleReferenceImageEdited"
-                    @editing-completed="completeStep(2)"
-                    ref="referenceImageWorkspaceRef"
-                  />
+                  <ImageWorkspaceComp :image-url="referenceImage" :original-image-name="referenceImageName"
+                    @image-edited="handleReferenceImageEdited" @editing-completed="completeStep(2)"
+                    ref="referenceImageWorkspaceRef" />
                 </div>
               </template>
               <template #fallback>
                 <div class="loading-state">
-                  <el-icon class="loading-icon"><Loading /></el-icon>
+                  <el-icon class="loading-icon">
+                    <Loading />
+                  </el-icon>
                   <p>加载中...</p>
                 </div>
               </template>
@@ -180,12 +183,7 @@
       <!-- 右侧面板 -->
       <div class="right-panel">
         <!-- 生成按钮 -->
-        <el-button
-          type="primary"
-          class="generate-btn"
-          @click="handleGenerate"
-          :disabled="!canGenerate"
-        >
+        <el-button type="primary" class="generate-btn" @click="handleGenerate" :disabled="!canGenerate">
           {{ shoeStore.aiTaskStatus === 'running' ? '生成中...' : '立即生成' }}
         </el-button>
 
@@ -198,20 +196,17 @@
     </div>
 
     <!-- 主图本地预览弹窗 -->
-    <el-dialog 
-      v-model="showPreviewDialogMain" 
-      title="主图预览" 
-      width="800px" 
-      :close-on-click-modal="false"
-      @close="cancelMainPreview"
-    >
+    <el-dialog v-model="showPreviewDialogMain" title="主图预览" width="800px" :close-on-click-modal="false"
+      @close="cancelMainPreview">
       <div class="upload-modal-content">
         <div class="upload-area">
           <div v-if="previewImageMain" class="file-preview">
             <img :src="previewImageMain" alt="主图预览" class="preview-img" />
           </div>
           <div v-else class="upload-placeholder">
-            <el-icon><Plus /></el-icon>
+            <el-icon>
+              <Plus />
+            </el-icon>
             <span>请先选择图片</span>
             <p class="upload-tip">支持 JPG、PNG 格式，最大 10MB</p>
           </div>
@@ -226,20 +221,17 @@
     </el-dialog>
 
     <!-- 副图本地预览弹窗 -->
-    <el-dialog 
-      v-model="showPreviewDialogReference" 
-      title="副图预览" 
-      width="800px" 
-      :close-on-click-modal="false"
-      @close="cancelReferencePreview"
-    >
+    <el-dialog v-model="showPreviewDialogReference" title="副图预览" width="800px" :close-on-click-modal="false"
+      @close="cancelReferencePreview">
       <div class="upload-modal-content">
         <div class="upload-area">
           <div v-if="previewImageReference" class="file-preview">
             <img :src="previewImageReference" alt="副图预览" class="preview-img" />
           </div>
           <div v-else class="upload-placeholder">
-            <el-icon><Plus /></el-icon>
+            <el-icon>
+              <Plus />
+            </el-icon>
             <span>请先选择图片</span>
             <p class="upload-tip">支持 JPG、PNG 格式，最大 10MB</p>
           </div>
@@ -259,19 +251,16 @@
         <Suspense>
           <template #default>
             <div class="image-workspace-container">
-              <ImageWorkspaceComp
-                ref="editDialogWorkspaceRef"
-                :key="`main-${mainImageName}`"
-                :image-url="mainImage"
-                :original-image-name="mainImageName"
-                @image-edited="handleMainImageEdited"
-                @editing-completed="closeEditDialogMain"
-              />
+              <ImageWorkspaceComp ref="editDialogWorkspaceRef" :key="`main-${mainImageName}`" :image-url="mainImage"
+                :original-image-name="mainImageName" @image-edited="handleMainImageEdited"
+                @editing-completed="closeEditDialogMain" />
             </div>
           </template>
           <template #fallback>
             <div class="loading-state">
-              <el-icon class="loading-icon"><Loading /></el-icon>
+              <el-icon class="loading-icon">
+                <Loading />
+              </el-icon>
               <p>加载中...</p>
             </div>
           </template>
@@ -286,24 +275,22 @@
     </el-dialog>
 
     <!-- 副图编辑弹窗 -->
-    <el-dialog v-model="showEditDialogReference" title="副图编辑" width="50%" :close-on-click-modal="false" class="edit-dialog">
+    <el-dialog v-model="showEditDialogReference" title="副图编辑" width="50%" :close-on-click-modal="false"
+      class="edit-dialog">
       <div class="edit-modal-content">
         <Suspense>
           <template #default>
             <div class="image-workspace-container">
-              <ImageWorkspaceComp
-                ref="referenceImageWorkspaceRef"
-                :key="`reference-${referenceImageName}`"
-                :image-url="referenceImage"
-                :original-image-name="referenceImageName"
-                @image-edited="handleReferenceImageEdited"
-                @editing-completed="closeEditDialogReference"
-              />
+              <ImageWorkspaceComp ref="referenceImageWorkspaceRef" :key="`reference-${referenceImageName}`"
+                :image-url="referenceImage" :original-image-name="referenceImageName"
+                @image-edited="handleReferenceImageEdited" @editing-completed="closeEditDialogReference" />
             </div>
           </template>
           <template #fallback>
             <div class="loading-state">
-              <el-icon class="loading-icon"><Loading /></el-icon>
+              <el-icon class="loading-icon">
+                <Loading />
+              </el-icon>
               <p>加载中...</p>
             </div>
           </template>
@@ -318,10 +305,7 @@
     </el-dialog>
 
     <!-- 标记可选区域选项弹窗 -->
-    <SelectionOptionsDialog
-      v-model="showSelectionDialog"
-      @select="handleSelectOption"
-    />
+    <SelectionOptionsDialog v-model="showSelectionDialog" @select="handleSelectOption" />
 
     <!-- 生成结果弹窗 -->
     <!-- <el-dialog
@@ -354,33 +338,23 @@
           </div>
         </div>
     </el-dialog> -->
-      </div>
-  <el-dialog v-model="showZoomDialogMain" width="80vw" :close-on-click-modal="true" :modal-style="{ height: '78vh' }" style="height:78vh;">
-    <div
-      class="zoom-img-container"
-      @wheel="handleZoomWheelMain"
-      style="height:calc(78vh - 60px);display:flex;align-items:center;justify-content:center;overflow:hidden;"
-    >
-      <img
-        :src="mainImage"
-        alt="放大预览"
-        :style="`max-width:100%;max-height:78vh;transform:scale(${zoomMain});transition:transform 0.2s;display:block;margin:auto;`"
-      />
+  </div>
+  <el-dialog v-model="showZoomDialogMain" width="80vw" :close-on-click-modal="true" :modal-style="{ height: '78vh' }"
+    style="height:78vh;">
+    <div class="zoom-img-container" @wheel="handleZoomWheelMain"
+      style="height:calc(78vh - 60px);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+      <img :src="mainImage" alt="放大预览"
+        :style="`max-width:100%;max-height:78vh;transform:scale(${zoomMain});transition:transform 0.2s;display:block;margin:auto;`" />
     </div>
     <div style="margin-top:8px;color:#fff;text-align:center;">缩放：{{ (zoomMain * 100).toFixed(0) }}%</div>
   </el-dialog>
-  <el-dialog v-model="showZoomDialogReference" width="80vw" :close-on-click-modal="true" :modal-style="{ height: '78vh' }" style="height:78vh;">
-    <div
-      class="zoom-img-container"
-      @wheel="handleZoomWheelReference"
-      style="height:calc(78vh - 60px);display:flex;align-items:center;justify-content:center;overflow:hidden;"
-    >
-      <img
-        :src="referenceImage"
-        alt="放大预览"
-        :style="`max-width:100%;max-height:78vh;transform:scale(${zoomReference});transition:transform 0.2s;display:block;margin:auto;`"
-      />
-  </div>
+  <el-dialog v-model="showZoomDialogReference" width="80vw" :close-on-click-modal="true"
+    :modal-style="{ height: '78vh' }" style="height:78vh;">
+    <div class="zoom-img-container" @wheel="handleZoomWheelReference"
+      style="height:calc(78vh - 60px);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+      <img :src="referenceImage" alt="放大预览"
+        :style="`max-width:100%;max-height:78vh;transform:scale(${zoomReference});transition:transform 0.2s;display:block;margin:auto;`" />
+    </div>
     <div style="margin-top:8px;color:#fff;text-align:center;">缩放：{{ (zoomReference * 100).toFixed(0) }}%</div>
   </el-dialog>
 </template>
@@ -397,9 +371,9 @@ import {
 } from "@element-plus/icons-vue";
 // Import the component
 const SelectionOptionsDialog = defineAsyncComponent(
-    () => import("../common/SelectionOptionsDialog.vue")
-  );
-  
+  () => import("../common/SelectionOptionsDialog.vue")
+);
+
 
 import type { UploadInstance } from "element-plus";
 import { ElMessage, ElLoading, ElMessageBox } from "element-plus";
@@ -440,7 +414,7 @@ const referenceImageWorkspaceRef = ref<any>(null);
 // 主图相关状态
 const showPreviewDialogMain = ref(false);
 const previewImageMain = ref('');
-const selectedFileMain = ref<File|null>(null);
+const selectedFileMain = ref<File | null>(null);
 const showEditDialogMain = ref(false);
 const mainImage = ref('');
 const mainImageName = ref('');
@@ -450,7 +424,7 @@ const fileInputMain = ref<HTMLInputElement | null>(null);
 // 副图相关状态
 const showPreviewDialogReference = ref(false);
 const previewImageReference = ref('');
-const selectedFileReference = ref<File|null>(null);
+const selectedFileReference = ref<File | null>(null);
 const showEditDialogReference = ref(false);
 const referenceImage = ref('');
 const referenceImageName = ref('');
@@ -556,7 +530,7 @@ const confirmMainPreview = () => {
     if (imageId) {
       mainImageName.value = String(imageId);
       mainImageId.value = Number(imageId);
-      
+
       // 重置结果状态，确保新图片不会显示之前的结果
       isViewingResults.value = false;
       resultDialogImages.value = [];
@@ -599,11 +573,11 @@ const confirmReferencePreview = () => {
     console.log('🔍 副图上传完成，设置referenceImage为:', imageUrl, '图片ID:', imageId);
     if (imageId != null && imageId !== '') referenceImageId.value = Number(imageId);
     referenceImageName.value = imageId?.toString() || '';
-    
+
     // 重置结果状态，确保新图片不会显示之前的结果
     isViewingResults.value = false;
     resultDialogImages.value = [];
-    
+
     // 使用服务器返回的图片URL，而不是本地预览图片
     referenceImage.value = imageUrl;
     showEditDialogReference.value = true;
@@ -617,7 +591,7 @@ const confirmReferencePreview = () => {
   }
   selectedFileReference.value = null;
   previewImageReference.value = '';
-  
+
   // 如果两张图片都上传完成，自动进入第2步
   if (mainImage.value && referenceImage.value && mainImageId.value != null && referenceImageId.value != null) {
     currentStep.value = 2;
@@ -637,10 +611,10 @@ function uploadFile(file: File, type: "input" | "output", callback?: (imageUrl: 
       }
     ).then(() => {
       localStorage.setItem("redirectAfterLogin", router.currentRoute.value.fullPath);
-        router.push("/login");
+      router.push("/login");
     }).catch(() => {
-        ElMessage.info("您可以继续使用本地图片预览功能，但无法保存到服务器");
-      });
+      ElMessage.info("您可以继续使用本地图片预览功能，但无法保存到服务器");
+    });
     const reader = new FileReader();
     reader.onload = (e) => {
       if (callback && e.target?.result) {
@@ -656,65 +630,65 @@ function uploadFile(file: File, type: "input" | "output", callback?: (imageUrl: 
     background: "rgba(0, 0, 0, 0.7)",
   });
   uploadImage(file)
-      .then((response: any) => {
-        if (response.code === 0 || response.code === 200) {
-          const imageData = response.data as UploadImageResponse;
-          const imageId = imageData.id;
-          return feedbackImage(imageId).then((feedbackResponse: any) => {
-            return { response: feedbackResponse, imageId };
-          });
-        } else {
+    .then((response: any) => {
+      if (response.code === 0 || response.code === 200) {
+        const imageData = response.data as UploadImageResponse;
+        const imageId = imageData.id;
+        return feedbackImage(imageId).then((feedbackResponse: any) => {
+          return { response: feedbackResponse, imageId };
+        });
+      } else {
         if (response.code === 401) {
           ElMessageBox.confirm("您的登录已过期，请重新登录。", "登录提示", {
-                confirmButtonText: "去登录",
-                cancelButtonText: "取消",
-                type: "warning",
+            confirmButtonText: "去登录",
+            cancelButtonText: "取消",
+            type: "warning",
           }).then(() => {
-                localStorage.removeItem("token");
+            localStorage.removeItem("token");
             localStorage.setItem("redirectAfterLogin", router.currentRoute.value.fullPath);
-                router.push("/login");
-              });
-            return Promise.reject(new Error("login_required"));
-          }
-          throw new Error(response.msg || "上传失败");
-        }
-      })
-      .then((result: any) => {
-        if (!result) return;
-        const { response, imageId } = result;
-        if (response.code === 0 || response.code === 200) {
-          const imageUrl = response.data;
-        if (callback) callback(imageUrl, imageId);
-          ElMessage.success("图片上传成功");
-          if (response.code === 0 || response.code === 200) {
-            let viewUrls = [];
-            if (response.data && response.data.viewUrls) {
-              viewUrls = response.data.viewUrls;
-            } else if (response.viewUrls) {
-              viewUrls = response.viewUrls;
-            }
-            if (viewUrls.length > 0) {
-            router.push({ path: '/design/partial-modify', query: { creativeImg: viewUrls[0] } });
-              return;
-            }
-          }
-        } else {
-          throw new Error(response.msg || "获取图片地址失败");
-        }
-      })
-      .catch((error: any) => {
-      if (error.message === "login_required") {
-          return;
-        }
-          ElMessage.error({
-        message: "图片上传失败: " + (error.message || "未知错误"),
-            duration: 5000,
+            router.push("/login");
           });
-      })
-      .then(() => {
-        loading.close();
+          return Promise.reject(new Error("login_required"));
+        }
+        throw new Error(response.msg || "上传失败");
+      }
+    })
+    .then((result: any) => {
+      if (!result) return;
+      const { response, imageId } = result;
+      if (response.code === 0 || response.code === 200) {
+        const imageUrl = response.data;
+        if (callback) callback(imageUrl, imageId);
+        ElMessage.success("图片上传成功");
+        if (response.code === 0 || response.code === 200) {
+          let viewUrls = [];
+          if (response.data && response.data.viewUrls) {
+            viewUrls = response.data.viewUrls;
+          } else if (response.viewUrls) {
+            viewUrls = response.viewUrls;
+          }
+          if (viewUrls.length > 0) {
+            router.push({ path: '/design/partial-modify', query: { creativeImg: viewUrls[0] } });
+            return;
+          }
+        }
+      } else {
+        throw new Error(response.msg || "获取图片地址失败");
+      }
+    })
+    .catch((error: any) => {
+      if (error.message === "login_required") {
+        return;
+      }
+      ElMessage.error({
+        message: "图片上传失败: " + (error.message || "未知错误"),
+        duration: 5000,
       });
-  }
+    })
+    .then(() => {
+      loading.close();
+    });
+}
 
 // 编辑弹窗关闭
 const closeEditDialogMain = () => {
@@ -729,14 +703,14 @@ const closeEditDialogReference = () => {
 
 // 预览弹窗取消处理
 const cancelMainPreview = () => {
-    showPreviewDialogMain.value = false;
+  showPreviewDialogMain.value = false;
   uploadModalVisible.value = false;
   // 清空文件输入框
   if (fileInputMain.value) {
     fileInputMain.value.value = '';
-    }
-    selectedFileMain.value = null;
-    previewImageMain.value = '';
+  }
+  selectedFileMain.value = null;
+  previewImageMain.value = '';
 };
 
 const cancelReferencePreview = () => {
@@ -762,7 +736,7 @@ const handleMainImageEdited = (editedImageUrl: string, imageId?: number | string
   if (imageId !== undefined && imageId !== null && imageId !== '') {
     mainImageId.value = Number(imageId);
     mainImageName.value = imageId.toString();
-    
+
     // 更新全局store状态，让其他功能使用编辑后的图片ID
     shoeStore.setOriginalImageId(Number(imageId));
     console.log('🌐 已设置全局主图编辑后图片ID:', imageId);
@@ -781,7 +755,7 @@ const handleReferenceImageEdited = (editedImageUrl: string, imageId?: number | s
   if (imageId !== undefined && imageId !== null && imageId !== '') {
     referenceImageId.value = Number(imageId);
     referenceImageName.value = imageId.toString();
-    
+
     // 注意：这里不更新全局store状态，因为全局store主要用于主图（第一张图片）
     // 第二张图片的ID通过referenceImageId.value单独管理
     console.log('🌐 已设置副图编辑后图片ID:', imageId);
@@ -802,13 +776,13 @@ watch(() => shoeStore.aiTaskImages, (newImages) => {
       resultDialogImages.value = newImages
       isViewingResults.value = true
       resultDialogIndex.value = 0
-      
+
       // 重置其他状态
-  isEditingMainImage.value = false;
-  isEditingReferenceImage.value = false;
+      isEditingMainImage.value = false;
+      isEditingReferenceImage.value = false;
       editModalVisible.value = false;
       uploadModalVisible.value = false;
-      
+
       ElMessage.success("局部修改生成成功");
       isProcessingPartialModifyTask.value = false // 重置任务状态
     }
@@ -847,11 +821,11 @@ const handleGenerate = async () => {
 
   try {
     isProcessingPartialModifyTask.value = true; // 设置为局部修改任务进行中
-    
+
     // 使用当前上传的图片ID，避免使用全局状态中的旧ID
     const majorIdToUse = mainImageId.value || parseInt(mainImageName.value)
     const minorIdToUse = referenceImageId.value || parseInt(referenceImageName.value)
-    
+
     console.log("使用的图片ID:", {
       鞋面图ID: majorIdToUse,
       鞋面图来源: mainImageId.value ? '本地编辑后ID' : '当前上传的图片',
@@ -870,7 +844,7 @@ const handleGenerate = async () => {
     const requestData: JbchRequest = {
       majorId: majorIdToUse,
       minorId: minorIdToUse,
-      prompt:  "自动改款",
+      prompt: "自动改款",
       isMask: 2, // 默认使用二图蒙版
     };
     // 发送请求
@@ -885,14 +859,12 @@ const handleGenerate = async () => {
     }
 
     // 优先判断 WebSocket 字段
-    if (result && result.promptId && result.clientId && result.server) {
-      console.log('WebSocket参数:', result.promptId, result.clientId, result.server);
+    if (result && result.taskId) {
+      console.log('WebSocket参数:', result.taskId);
       shoeStore.setAiTaskInfo({
-        promptId: result.promptId,
-        clientId: result.clientId,
-        server: result.server
+        taskId: result.taskId
       });
-              startAiTaskWs(result.clientId, result.server, result.promptId, 'partial-modify');
+      startAiTaskWs(result.taskId, 'partial-modify');
       // 不要直接 return，让 watch 监听 WebSocket 结果
     } else if (viewUrls.length > 0) {
       // 没有 WebSocket 字段才直接处理结果
@@ -973,11 +945,11 @@ const handleMarkArea = () => {
 const completeStep = (step: number) => {
   if (step === 1 && mainImage.value) {
     // 如果当前在编辑主图，则完成编辑并进入下一步
-      isEditingMainImage.value = false;
+    isEditingMainImage.value = false;
     currentStep.value = 2;
   } else if (step === 2 && referenceImage.value) {
     // 如果当前在编辑参考图，则完成编辑
-      isEditingReferenceImage.value = false;
+    isEditingReferenceImage.value = false;
   }
 };
 
@@ -995,8 +967,8 @@ function dataURLtoFile(dataurl: string, filename: string): File {
   const bstr = atob(arr[1].split('base64,')[1]);
   let n = bstr.length;
   const u8arr = new Uint8Array(n);
-  while(n--) u8arr[n] = bstr.charCodeAt(n);
-  return new File([u8arr], filename, {type:mime});
+  while (n--) u8arr[n] = bstr.charCodeAt(n);
+  return new File([u8arr], filename, { type: mime });
 }
 
 onMounted(async () => {
@@ -1050,7 +1022,7 @@ function handleTwoChuangSelect(option: any) {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background-image: url("@/assets/bg.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -1070,7 +1042,7 @@ function handleTwoChuangSelect(option: any) {
 
 .left-panel {
   width: 270px;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
   padding: 10px;
   backdrop-filter: blur(10px);
@@ -1080,7 +1052,7 @@ function handleTwoChuangSelect(option: any) {
 
 .work-area {
   flex: 1;
-  background: rgba(248, 248, 248, 0.8);
+  background: rgba(0, 0, 0, 0.2);
   border-radius: 10px;
   display: flex;
   justify-content: center;
@@ -1154,10 +1126,9 @@ function handleTwoChuangSelect(option: any) {
 }
 
 .upload-section {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 8px;
   padding: 10px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .image-preview {
@@ -1172,7 +1143,7 @@ function handleTwoChuangSelect(option: any) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(240, 240, 240, 0.8);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .image-preview:hover {
@@ -1206,11 +1177,13 @@ function handleTwoChuangSelect(option: any) {
   box-shadow: 0 2px 8px #c8ad7f33;
   transition: background 0.2s, color 0.2s;
 }
+
 .generate-btn:disabled {
   background: linear-gradient(90deg, #e0cfa0 0%, #f5e6c3 100%);
   opacity: 0.7;
   color: #fff;
 }
+
 .generate-btn:hover:not(:disabled) {
   background: linear-gradient(90deg, #ffe7b2 0%, #c8ad7f 100%);
   color: #c8ad7f;
@@ -1316,6 +1289,7 @@ function handleTwoChuangSelect(option: any) {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -1336,7 +1310,8 @@ function handleTwoChuangSelect(option: any) {
   margin-top: 15px;
   font-size: 14px;
   font-weight: 500;
-  color: #c8ad7f;;
+  color: #c8ad7f;
+  ;
 }
 
 .mark-area:hover {
@@ -1347,7 +1322,8 @@ function handleTwoChuangSelect(option: any) {
 
 .mark-area .el-icon {
   font-size: 16px;
-  color: #c8ad7f; ;
+  color: #c8ad7f;
+  ;
 }
 
 .preview-container {
@@ -1491,10 +1467,12 @@ function handleTwoChuangSelect(option: any) {
   background: rgba(30, 30, 30, 0.98) !important;
   color: #fff !important;
 }
+
 :deep(.el-dialog__body) {
   background: transparent !important;
   color: #fff !important;
 }
+
 :deep(.el-dialog__header) {
   background: transparent !important;
   color: #fff !important;
@@ -1613,7 +1591,7 @@ function handleTwoChuangSelect(option: any) {
   top: 8px;
   right: 8px;
   z-index: 3;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   border: none;
   border-radius: 50%;
   padding: 6px;
@@ -1621,13 +1599,16 @@ function handleTwoChuangSelect(option: any) {
   color: #fff;
   transition: background 0.2s;
 }
+
 .zoom-icon-btn:hover {
   background: #c8ad7f;
   color: #222;
 }
+
 .zoom-icon-btn .el-icon {
   font-size: 20px;
 }
+
 .zoom-img-container {
   width: 100%;
   height: 100%;
@@ -1687,25 +1668,30 @@ function handleTwoChuangSelect(option: any) {
   max-width: 500px;
   width: 90%;
 }
+
 .progress-bar-gold {
   margin-bottom: 8px;
 }
+
 .progress-percent {
   color: #00FF00;
   font-weight: bold;
   font-size: 32px;
   margin-bottom: 8px;
 }
+
 .percent-sign {
   font-size: 18px;
   margin-left: 2px;
 }
+
 .progress-title {
   color: #c8ad7f;
   font-weight: bold;
   font-size: 22px;
   margin-bottom: 10px;
 }
+
 .progress-desc {
   display: flex;
   align-items: center;
@@ -1715,6 +1701,7 @@ function handleTwoChuangSelect(option: any) {
   font-size: 16px;
   margin-bottom: 8px;
 }
+
 .progress-spinner {
   display: inline-block;
   width: 22px;
@@ -1724,15 +1711,23 @@ function handleTwoChuangSelect(option: any) {
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
+
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
+
 .progress-tip {
   color: rgba(255, 255, 255, 0.6);
   font-size: 14px;
   margin-top: 15px;
 }
+
 .progress-tip p {
   margin-bottom: 5px;
 }
@@ -1785,5 +1780,4 @@ function handleTwoChuangSelect(option: any) {
   font-size: 16px;
   font-weight: 500;
 }
-
-</style> 
+</style>

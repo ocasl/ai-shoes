@@ -702,15 +702,15 @@ const handleGenerate = async () => {
       return; // 直接返回，不启动WebSocket
     }
     
-    // 如果没有直接结果，但有WebSocket参数，则启动WebSocket监听
-    if (result && result.promptId && result.clientId && result.server) {
-      console.log('WebSocket参数:', result.promptId, result.clientId, result.server);
-      shoeStore.setAiTaskInfo({
-        promptId: result.promptId,
-        clientId: result.clientId,
-        server: result.server
-      });
-              startAiTaskWs(result.clientId, result.server, result.promptId, 'style-extension');
+    // 检查API响应格式 - 新的API格式：直接返回taskId
+    if (result && typeof result === 'string') {
+      const taskId = result;
+      console.log('获得taskId:', taskId);
+      
+      // 启动WebSocket监听（内部会设置store状态）
+      startAiTaskWs(taskId, 'style-extension');
+      
+      ElMessage.success('款式延伸任务已提交，正在处理中...');
       // 让 watch 监听 WebSocket 结果
     } else {
       ElMessage.warning("生成成功但未获得图片");

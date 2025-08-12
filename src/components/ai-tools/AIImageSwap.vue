@@ -9,30 +9,41 @@
             <span class="step-title">Step 1</span>
             <span class="step-desc">上传要抠图的鞋款</span>
             <el-tooltip content="帮助信息" placement="top">
-              <el-icon><QuestionFilled /></el-icon>
+              <el-icon>
+                <QuestionFilled />
+              </el-icon>
             </el-tooltip>
             <span v-if="mainImage" class="step-status">
-              <el-icon><Check /></el-icon>
+              <el-icon>
+                <Check />
+              </el-icon>
             </span>
           </div>
-          
+
           <div class="upload-section">
             <div class="image-preview" @click="handleMainUploadClick">
               <div v-if="mainImage" class="preview-container" style="position:relative;">
                 <img :src="mainImage" alt="主图预览" class="preview-img" crossorigin="anonymous" />
                 <div class="change-overlay">
-                  <el-icon><Plus /></el-icon>
+                  <el-icon>
+                    <Plus />
+                  </el-icon>
                   <span>更换图片</span>
                 </div>
                 <button class="zoom-icon-btn" type="button" @click.stop="showZoomDialogMain = true">
-                  <el-icon><ZoomIn /></el-icon>
+                  <el-icon>
+                    <ZoomIn />
+                  </el-icon>
                 </button>
               </div>
               <div v-else class="upload-placeholder">
-                <el-icon><Plus /></el-icon>
+                <el-icon>
+                  <Plus />
+                </el-icon>
                 <span>点击上传图片</span>
               </div>
-              <input ref="fileInputMain" type="file" accept="image/*" style="display:none" @change="handleMainFileSelect" />
+              <input ref="fileInputMain" type="file" accept="image/*" style="display:none"
+                @change="handleMainFileSelect" />
             </div>
             <div class="step-actions" v-if="mainImage">
               <el-button type="primary" @click="handleClearImage">清除图片</el-button>
@@ -40,23 +51,16 @@
           </div>
         </div>
       </div>
-      
+
 
       <!-- 中间工作区域 -->
       <div class="work-area">
         <template v-if="isViewingResults && resultImages.length > 0">
           <!-- 只在有结果时展示 -->
           <div class="image-workspace-container">
-            <ImageWorkspaceComp 
-              ref="imageWorkspaceRef"
-              :image-url="mainImage"
-              :is-view-results="isViewingResults"
-              :result-images="resultImages"
-              :hide-brush-tool="true"
-              :hideMaskTool="true"
-              @result-saved="handleResultSaved"
-              @exit-results="exitResultsView"
-            />
+            <ImageWorkspaceComp ref="imageWorkspaceRef" :image-url="mainImage" :is-view-results="isViewingResults"
+              :result-images="resultImages" :hide-brush-tool="true" :hideMaskTool="true"
+              @result-saved="handleResultSaved" @exit-results="exitResultsView" />
           </div>
         </template>
         <template v-else>
@@ -77,32 +81,24 @@
       <!-- 右侧面板 -->
       <div class="right-panel">
         <!-- 生成按钮 -->
-        <el-button 
-          type="primary" 
-          class="generate-btn" 
-          @click="handleGenerate"
-          :disabled="!canGenerate"
-          :loading="isGenerating"
-        >
+        <el-button type="primary" class="generate-btn" @click="handleGenerate" :disabled="!canGenerate"
+          :loading="isGenerating">
           {{ shoeStore.aiTaskStatus === 'running' ? '抠图中...' : '立即抠图' }}
         </el-button>
       </div>
 
       <!-- 主图本地预览弹窗 -->
-      <el-dialog 
-        v-model="showPreviewDialogMain" 
-        title="主图预览" 
-        width="800px" 
-        :close-on-click-modal="false"
-        @close="cancelMainPreview"
-      >
+      <el-dialog v-model="showPreviewDialogMain" title="主图预览" width="800px" :close-on-click-modal="false"
+        @close="cancelMainPreview">
         <div class="upload-modal-content">
           <div class="upload-area">
             <div v-if="previewImageMain" class="file-preview">
               <img :src="previewImageMain" alt="主图预览" class="preview-img" />
             </div>
             <div v-else class="upload-placeholder">
-              <el-icon><Plus /></el-icon>
+              <el-icon>
+                <Plus />
+              </el-icon>
               <span>请先选择图片</span>
               <p class="upload-tip">支持 JPG、PNG 格式，最大 10MB</p>
             </div>
@@ -117,30 +113,21 @@
       </el-dialog>
 
       <!-- 主图编辑弹窗 -->
-      <el-dialog 
-        v-model="showEditDialogMain" 
-        title="主图编辑" 
-        width="50%" 
-        :close-on-click-modal="false" 
-        class="edit-dialog"
-      >
+      <el-dialog v-model="showEditDialogMain" title="主图编辑" width="50%" :close-on-click-modal="false"
+        class="edit-dialog">
         <div class="edit-modal-content">
           <Suspense>
             <template #default>
               <div class="image-workspace-container">
-                <ImageWorkspaceComp
-                  :image-url="mainImage"
-                  :original-image-name="mainImageName"
-                  :hide-brush-tool="true"
-                  :hideMaskTool="true"
-                  @image-edited="handleImageEdited"
-                  @editing-completed="closeEditDialogMain"
-                />
+                <ImageWorkspaceComp :image-url="mainImage" :original-image-name="mainImageName" :hide-brush-tool="true"
+                  :hideMaskTool="true" @image-edited="handleImageEdited" @editing-completed="closeEditDialogMain" />
               </div>
             </template>
             <template #fallback>
               <div class="loading-state">
-                <el-icon class="loading-icon"><Loading /></el-icon>
+                <el-icon class="loading-icon">
+                  <Loading />
+                </el-icon>
                 <p>加载中...</p>
               </div>
             </template>
@@ -155,13 +142,8 @@
       </el-dialog>
 
       <!-- 结果弹窗 -->
-      <el-dialog 
-        v-model="showResultDialog" 
-        title="抠图结果" 
-        width="800px" 
-        :close-on-click-modal="false"
-        @close="closeResultDialog"
-      >
+      <el-dialog v-model="showResultDialog" title="抠图结果" width="800px" :close-on-click-modal="false"
+        @close="closeResultDialog">
         <div class="result-dialog-content">
           <div class="result-image-container">
             <img :src="resultImages[resultDialogIndex]" alt="抠图结果" class="result-image" />
@@ -178,13 +160,8 @@
     <div v-if="shoeStore.aiTaskStatus === 'running'" class="loading-overlay">
       <div class="loading-container">
         <div class="loading-spinner"></div>
-        <el-progress 
-          :percentage="shoeStore.aiTaskProgress" 
-          :stroke-width="8"
-          :show-text="false"
-          color="#c8ad7f"
-          class="loading-progress"
-        />
+        <el-progress :percentage="shoeStore.aiTaskProgress" :stroke-width="8" :show-text="false" color="#c8ad7f"
+          class="loading-progress" />
         <div class="loading-percentage">{{ shoeStore.aiTaskProgress }}%</div>
         <div class="loading-text">AI任务执行中</div>
       </div>
@@ -192,24 +169,12 @@
   </div>
 
   <!-- 主图放大预览弹窗 -->
-  <el-dialog
-    v-model="showZoomDialogMain"
-    width="80vw"
-    :close-on-click-modal="true"
-    :modal-style="{ height: '78vh' }"
-    style="height:78vh;"
-    class="zoom-dialog"
-  >
-    <div
-      class="zoom-img-container"
-      @wheel="handleZoomWheelMain"
-      style="height:calc(78vh - 60px);display:flex;align-items:center;justify-content:center;overflow:hidden;"
-    >
-      <img
-        :src="mainImage"
-        alt="放大预览"
-        :style="`max-width:100%;max-height:78vh;transform:scale(${zoomMain});transition:transform 0.2s;display:block;margin:auto;`"
-      />
+  <el-dialog v-model="showZoomDialogMain" width="80vw" :close-on-click-modal="true" :modal-style="{ height: '78vh' }"
+    style="height:78vh;" class="zoom-dialog">
+    <div class="zoom-img-container" @wheel="handleZoomWheelMain"
+      style="height:calc(78vh - 60px);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+      <img :src="mainImage" alt="放大预览"
+        :style="`max-width:100%;max-height:78vh;transform:scale(${zoomMain});transition:transform 0.2s;display:block;margin:auto;`" />
     </div>
     <div style="margin-top:8px;color:#222;text-align:center;">缩放：{{ (zoomMain * 100).toFixed(0) }}%</div>
   </el-dialog>
@@ -227,7 +192,7 @@ import { useShoeStore } from '../../store'
 import { startAiTaskWs, stopAiTaskWs } from '../../utils/wsTask'
 
 // 异步引入图片工作区组件
-const ImageWorkspaceComp = defineAsyncComponent(() => 
+const ImageWorkspaceComp = defineAsyncComponent(() =>
   import('../design/ImageWorkspace.vue')
 )
 
@@ -281,7 +246,15 @@ function handleZoomWheelMain(e: WheelEvent) {
 
 // 计算属性
 const canGenerate = computed(() => {
-  return !!mainImage.value && !!mainImageName.value
+  const result = !!mainImage.value && !!mainImageName.value;
+  console.log('🔍 canGenerate 计算:', {
+    mainImage: !!mainImage.value,
+    mainImageName: !!mainImageName.value,
+    mainImageValue: mainImage.value,
+    mainImageNameValue: mainImageName.value,
+    canGenerate: result
+  });
+  return result;
 })
 
 // 主图上传相关方法
@@ -316,7 +289,7 @@ const confirmMainPreview = () => {
     uploadFile(file, (_, imageId) => {
       if (imageId) {
         mainImageName.value = String(imageId);
-        
+
         // 设置全局状态
         shoeStore.setOriginalImageId(Number(imageId));
         console.log('🌐 已设置全局原始图片ID:', imageId);
@@ -368,11 +341,11 @@ const handleImageEdited = (editedImageUrl: string, imageId?: number) => {
   mainImage.value = editedImageUrl;
   if (imageId) {
     mainImageName.value = String(imageId);
-    
+
     // 设置全局状态，让其他功能使用编辑后的图片ID
     shoeStore.setOriginalImageId(imageId);
     console.log('🌐 已设置全局编辑后图片ID:', imageId);
-    
+
     showEditDialogMain.value = false;
   } else if (editedImageUrl && !mainImageName.value) {
     // creativeImg 跳转且未上传，自动上传
@@ -380,7 +353,7 @@ const handleImageEdited = (editedImageUrl: string, imageId?: number) => {
     uploadFile(file, (_, newImageId) => {
       if (newImageId) {
         mainImageName.value = String(newImageId);
-        
+
         // 设置全局状态
         shoeStore.setOriginalImageId(Number(newImageId));
         console.log('🌐 已设置全局编辑后图片ID:', newImageId);
@@ -440,7 +413,7 @@ const uploadFile = (file: File, callback?: (imageUrl: string, imageName?: string
   } else {
     doUpload(file)
   }
-  
+
   async function doUpload(fileToUpload: File) {
     try {
       const response: any = await uploadImage(fileToUpload);
@@ -522,6 +495,124 @@ const compressImage = (file: File): Promise<File> => {
   })
 }
 
+// 直接查询任务结果的函数
+const queryTaskResult = async (taskId: string, retryCount = 0) => {
+  const maxRetries = 5; // 最多重试5次
+  const retryDelay = 500; // 每次重试间隔500ms
+
+  try {
+    console.log(`🔍 查询任务结果 (第${retryCount + 1}次):`, taskId);
+
+    const requestUrl = `/api/image/request?taskId=${taskId}`;
+    const token = localStorage.getItem('token');
+    const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`;
+
+    const response = await fetch(requestUrl, {
+      headers: {
+        'Authorization': bearerToken,
+      }
+    });
+
+    console.log('📡 查询响应状态:', response.status);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('📸 查询结果:', data);
+
+    if (data.code === 200 && data.data) {
+      // 检查返回的图片数据
+      const imageUrls = data.data.images || data.data.viewUrls || data.data.ossUrls || [];
+      const ossIds = data.data.ossIds || [];
+
+      if (imageUrls && Array.isArray(imageUrls) && imageUrls.length > 0) {
+        console.log('✅ 查询成功，获取到图片链接:', imageUrls);
+
+        // 设置结果图片
+        resultImages.value = imageUrls;
+        isViewingResults.value = true;
+
+        // 更新全局图片ID状态
+        if (ossIds && Array.isArray(ossIds) && ossIds.length > 0) {
+          const newImageId = ossIds[0];
+          console.log('🌐 更新全局图片ID:', newImageId);
+          shoeStore.setSegmentedImageId(newImageId);
+        }
+
+        // 显示结果
+        if (imageWorkspaceRef.value) {
+          imageWorkspaceRef.value.showResults(imageUrls);
+        }
+
+        ElMessage.success('抠图成功');
+        isProcessingAIImageSwapTask.value = false;
+
+        // 重置任务状态，关闭进度条
+        shoeStore.setAiTaskStatus('success');
+        shoeStore.setAiTaskProgress(100);
+
+        // 延迟一下再重置状态，让用户看到100%的进度
+        setTimeout(() => {
+          shoeStore.resetAiTask();
+        }, 1000);
+
+        return;
+      }
+    }
+
+    // 如果没有结果且还有重试机会，则重试
+    if (retryCount < maxRetries) {
+      console.log(`⏳ 暂无结果，${retryDelay}ms后进行第${retryCount + 2}次重试...`);
+      setTimeout(() => {
+        queryTaskResult(taskId, retryCount + 1);
+      }, retryDelay);
+    } else {
+      console.error('❌ 查询已达最大重试次数，停止重试');
+      ElMessage.error('抠图完成但获取结果失败，请重试');
+      isProcessingAIImageSwapTask.value = false;
+    }
+
+  } catch (error) {
+    console.error(`❌ 查询失败 (第${retryCount + 1}次):`, error);
+
+    // 如果还有重试机会，等待后重试
+    if (retryCount < maxRetries) {
+      console.log(`🔄 ${retryDelay}ms后进行第${retryCount + 2}次重试...`);
+      setTimeout(() => {
+        queryTaskResult(taskId, retryCount + 1);
+      }, retryDelay);
+    } else {
+      console.error('❌ 查询已达最大重试次数，停止重试');
+      ElMessage.error('查询结果失败，请重试');
+      isProcessingAIImageSwapTask.value = false;
+    }
+  }
+};
+
+// 启动备用查询机制，确保不会丢失结果
+const startBackupQuery = (taskId: string) => {
+  console.log('🔄 启动备用查询机制，taskId:', taskId);
+
+  // 10秒后开始备用查询，给WebSocket足够的时间
+  setTimeout(() => {
+    // 如果WebSocket还没有获取到结果，则启动备用查询
+    if (isProcessingAIImageSwapTask.value && !isViewingResults.value) {
+      console.log('🔄 WebSocket未获取到结果，启动备用查询');
+      queryTaskResult(taskId);
+    }
+  }, 10000);
+
+  // 30秒后强制查询，确保不会永远等待
+  setTimeout(() => {
+    if (isProcessingAIImageSwapTask.value && !isViewingResults.value) {
+      console.log('🔄 强制启动备用查询');
+      queryTaskResult(taskId);
+    }
+  }, 30000);
+};
+
 // 处理编辑完成
 const completeEditing = () => {
   // User has explicitly completed editing
@@ -541,10 +632,17 @@ const exitResultsView = () => {
 
 // 处理生成按钮点击
 const handleGenerate = async () => {
+  console.log('🚀 handleGenerate 函数开始执行');
+  console.log('🔍 mainImage.value:', mainImage.value);
+  console.log('🔍 mainImageName.value:', mainImageName.value);
+
   if (!mainImage.value || !mainImageName.value) {
+    console.log('❌ 图片或图片名称为空，返回');
     ElMessage.warning('请先上传图片')
     return
   }
+
+  console.log('✅ 图片检查通过，开始处理');
 
   // 显示加载中提示
   const loadingInstance = ElLoading.service({
@@ -552,12 +650,12 @@ const handleGenerate = async () => {
     text: '正在抠图中...',
     background: 'rgba(0, 0, 0, 0.7)'
   })
-  
+
   isGenerating.value = true
 
   try {
     isProcessingAIImageSwapTask.value = true; // 设置为AI图片交换任务进行中
-    
+
     // 使用当前上传的图片ID，避免使用全局状态中的旧ID
     const imageIdToUse = Number(mainImageName.value)
     console.log('🔍 AI图片交换调试信息:', {
@@ -571,80 +669,88 @@ const handleGenerate = async () => {
       }
     })
     console.log('🔍 全局store的完整状态:', shoeStore.currentImage)
-    
+
     const requestData: KtRequest = {
       imageId: imageIdToUse
     }
-    
+
     const response = await kt(requestData)
+
+    console.log('🔍 抠图API完整响应:', response)
 
     if (response.code === 0 || response.code === 200) {
       // 处理成功响应
       const result = response.data
+      console.log('🔍 抠图API返回的data:', result)
+      console.log('🔍 data类型:', typeof result)
+      console.log('🔍 result是否为字符串:', typeof result === 'string')
+      console.log('🔍 result是否存在:', !!result)
 
-      // 优先检查 ossUrls，兼容 viewUrls
+      // 检查API响应格式 - 新的API格式：直接返回taskId
+      if (result && typeof result === 'string') {
+        const taskId = result;
+        console.log('✅ 获得taskId:', taskId);
+        console.log('🚀 开始设置任务状态...');
+
+        // 立即设置任务状态为运行中，显示进度条
+        shoeStore.setAiTaskStatus('running');
+        shoeStore.setAiTaskProgress(0);
+        console.log('✅ 任务状态已设置为running，进度设置为0');
+
+        // 启动WebSocket监听
+        console.log('🔗 启动WebSocket连接...');
+        startAiTaskWs(taskId, 'cutout');
+
+        // 同时启动备用查询机制，确保不会丢失结果
+        console.log('🔄 启动备用查询机制...');
+        startBackupQuery(taskId);
+
+        ElMessage.success('抠图任务已提交，正在处理中...');
+        console.log('✅ 抠图任务处理完成，已返回');
+        return;
+      } else {
+        console.log('❌ taskId检查失败，result:', result, 'typeof:', typeof result);
+      }
+
+      // 兼容老格式：检查是否有直接返回的图片URL
       if (result && (result.ossUrls || result.viewUrls)) {
         const imageUrls = result.ossUrls || result.viewUrls
-        
+        console.log('🔍 检查到直接返回的图片URL:', imageUrls)
+
         if (imageUrls && Array.isArray(imageUrls) && imageUrls.length > 0) {
           // 如果有直接返回的图片URL，直接使用
           resultImages.value = imageUrls
-          
+
           // 保存一键抠图返回的ossId
           console.log('🔍 抠图API返回的完整结果:', result)
           console.log('🔍 result.ossIds:', result.ossIds)
           const ossId = result.ossIds && result.ossIds.length > 0 ? result.ossIds[0] : undefined
-          
+
           // 设置全局状态，让其他功能使用抠图后的ossId
           if (ossId) {
             console.log('🌐 准备设置全局抠图图片ID:', ossId)
             shoeStore.setSegmentedImageId(ossId)
             console.log('🌐 已设置全局抠图图片ID:', ossId)
-            console.log('🌐 设置后的全局状态:', {
-              currentId: shoeStore.currentImage.currentId,
-              originalId: shoeStore.currentImage.originalId,
-              isSegmented: shoeStore.currentImage.isSegmented
-            })
           } else {
             console.log('⚠️ ossId为空，无法设置全局状态')
           }
 
           // 显示结果
-          if (resultImages.value.length > 0) {
-            isViewingResults.value = true
+          isViewingResults.value = true
 
-            // 如果有imageWorkspaceRef，调用其showResults方法
-            if (imageWorkspaceRef.value) {
-              imageWorkspaceRef.value.showResults(resultImages.value)
-            }
-
-            ElMessage.success('抠图成功')
-          } else {
-            ElMessage.warning('抠图成功但未获得图片')
+          // 如果有imageWorkspaceRef，调用其showResults方法
+          if (imageWorkspaceRef.value) {
+            imageWorkspaceRef.value.showResults(resultImages.value)
           }
-          
-          // 如果有直接结果，直接返回，不再处理WebSocket
-          return
-        } else {
-          ElMessage.warning('抠图成功但未获得图片')
-          return
+
+          ElMessage.success('抠图成功')
+          return;
         }
       }
-      
-      // 只有在没有直接结果的情况下，才检查WebSocket任务
-      if (result && result.promptId && result.clientId && result.server) {
-        // 检查是否有WebSocket任务信息
-        // 设置任务信息并启动WebSocket监听
-        shoeStore.setAiTaskInfo({
-          promptId: result.promptId,
-          clientId: result.clientId,
-          server: result.server
-        })
-        startAiTaskWs(result.clientId, result.server, result.promptId, 'cutout')
-        ElMessage.success('任务已提交，正在生成...')
-      } else {
-        ElMessage.warning('返回格式异常')
-      }
+
+      // 如果既不是taskId也没有直接的图片URL
+      console.error('❌ 未知的API响应格式:', result)
+      ElMessage.warning('抠图成功但返回格式异常')
     } else {
       throw new Error(response.msg || '抠图失败')
     }
@@ -670,7 +776,7 @@ watch(() => shoeStore.aiTaskImages, (newImages) => {
       if (imageWorkspaceRef.value) {
         imageWorkspaceRef.value.showResults(newImages)
       }
-      ElMessage.success('AI图片交换成功')
+      ElMessage.success('抠图成功')
       isProcessingAIImageSwapTask.value = false // 重置任务状态
     }
   }
@@ -999,7 +1105,7 @@ const nextImage = () => {
 
 .image-workspace-container {
   width: 100%;
-  height:  85%;
+  height: 85%;
   position: relative;
 }
 
@@ -1020,8 +1126,13 @@ const nextImage = () => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* 弹窗样式 */
@@ -1178,8 +1289,13 @@ const nextImage = () => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-progress {
@@ -1205,7 +1321,7 @@ const nextImage = () => {
   top: 8px;
   right: 8px;
   z-index: 3;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   border: none;
   border-radius: 50%;
   padding: 6px;
@@ -1216,11 +1332,13 @@ const nextImage = () => {
   align-items: center;
   justify-content: center;
 }
+
 .zoom-icon-btn:hover {
   background: #c8ad7f;
   color: #222;
 }
+
 .zoom-icon-btn .el-icon {
   font-size: 20px;
 }
-</style> 
+</style>
