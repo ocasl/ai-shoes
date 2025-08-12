@@ -29,11 +29,11 @@
         <div class="swap-content">
           <!-- 左侧面板 -->
           <div class="left-panel">
-            <!-- Step 1 -->
-            <div class="step-section" :class="{ 'active-step': true }">
-              <div class="step-header">
+            <!-- Step 1 - 主图 -->
+            <div class="step-section" :class="{ 'active-step': currentStep === 1 }">
+              <div class="step-header" @click="setStep(1)">
                 <span class="step-title">Step 1</span>
-                <span class="step-desc">上传要去配色的鞋面图</span>
+                <span class="step-desc">上传主图</span>
                 <el-tooltip content="帮助信息" placement="top">
                   <el-icon><QuestionFilled /></el-icon>
                 </el-tooltip>
@@ -61,7 +61,44 @@
                   <input ref="fileInputMain" type="file" accept="image/*" style="display:none" @change="handleMainFileSelect" />
                 </div>
                 <div class="step-actions" v-if="mainImage">
-                  <el-button type="primary" @click="handleClearImage">清除图片</el-button>
+                  <el-button type="primary" @click="handleClearMainImage">清除图片</el-button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 2 - 副图 -->
+            <div class="step-section" :class="{ 'active-step': currentStep === 2 }" style="margin-top: 30px;">
+              <div class="step-header" @click="setStep(2)">
+                <span class="step-title">Step 2</span>
+                <span class="step-desc">上传参考配色图</span>
+                <el-tooltip content="帮助信息" placement="top">
+                  <el-icon><QuestionFilled /></el-icon>
+                </el-tooltip>
+                <span v-if="referenceImage" class="step-status">
+                  <el-icon><Check /></el-icon>
+                </span>
+              </div>
+              
+              <div class="upload-section">
+                <div class="image-preview" @click="handleReferenceUploadClick">
+                  <div v-if="referenceImage" class="preview-container" style="position:relative;">
+                    <img :src="referenceImage" alt="参考图预览" class="preview-img" crossorigin="anonymous" />
+                    <div class="change-overlay">
+                      <el-icon><Plus /></el-icon>
+                      <span>更换图片</span>
+                    </div>
+                    <button class="zoom-icon-btn" @click.stop="showZoomDialogReference = true">
+                      <el-icon><ZoomIn /></el-icon>
+                    </button>
+                  </div>
+                  <div v-else class="upload-placeholder">
+                    <el-icon><Plus /></el-icon>
+                    <span>点击上传参考图</span>
+                  </div>
+                  <input ref="fileInputReference" type="file" accept="image/*" style="display:none" @change="handleReferenceFileSelect" />
+                </div>
+                <div class="step-actions" v-if="referenceImage">
+                  <el-button type="primary" @click="handleClearReferenceImage">清除图片</el-button>
                 </div>
               </div>
             </div>
@@ -180,6 +217,71 @@
             </template>
           </el-dialog>
 
+          <!-- 副图本地预览弹窗 -->
+          <el-dialog 
+            v-model="showPreviewDialogReference" 
+            title="参考图预览" 
+            width="800px" 
+            :close-on-click-modal="false"
+            @close="cancelReferencePreview"
+          >
+            <div class="upload-modal-content">
+              <div class="upload-area">
+                <div v-if="previewImageReference" class="file-preview">
+                  <img :src="previewImageReference" alt="参考图预览" class="preview-img" @error="onImageError" />
+                </div>
+                <div v-else class="upload-placeholder">
+                  <el-icon><Plus /></el-icon>
+                  <span>请先选择图片</span>
+                  <p class="upload-tip">支持 JPG、PNG 格式，最大 10MB</p>
+                </div>
+              </div>
+            </div>
+            <template #footer>
+              <div class="dialog-footer">
+                <el-button @click="cancelReferencePreview">取消</el-button>
+                <el-button type="primary" @click="confirmReferencePreview" :disabled="!previewImageReference">确定</el-button>
+              </div>
+            </template>
+          </el-dialog>
+
+          <!-- 副图编辑弹窗 -->
+          <el-dialog 
+            v-model="showEditDialogReference" 
+            title="参考图编辑" 
+            width="50%" 
+            :close-on-click-modal="false" 
+            class="edit-dialog"
+          >
+            <div class="edit-modal-content">
+              <Suspense>
+                <template #default>
+                  <div class="image-workspace-container">
+                    <ImageWorkspaceComp
+                      :image-url="referenceImage"
+                      :original-image-name="referenceImageName"
+                      :hide-brush-tool="true"
+                      :hideMaskTool="true"
+                      @image-edited="handleReferenceImageEdited"
+                      @editing-completed="closeEditDialogReference"
+                    />
+                  </div>
+                </template>
+                <template #fallback>
+                  <div class="loading-state">
+                    <el-icon class="loading-icon"><Loading /></el-icon>
+                    <p>加载中...</p>
+                  </div>
+                </template>
+              </Suspense>
+            </div>
+            <template #footer>
+              <div class="dialog-footer">
+                <el-button @click="closeEditDialogReference">取消</el-button>
+              </div>
+            </template>
+          </el-dialog>
+
           <!-- 主图放大预览弹窗 -->
           <el-dialog v-model="showZoomDialogMain" width="80vw" :close-on-click-modal="true" :modal-style="{ height: '78vh' }" style="height:78vh;" class="zoom-dialog">
             <div
@@ -194,6 +296,22 @@
               />
             </div>
             <div style="margin-top:8px;color:#222;text-align:center;">缩放：{{ (zoomMain * 100).toFixed(0) }}%</div>
+          </el-dialog>
+
+          <!-- 副图放大预览弹窗 -->
+          <el-dialog v-model="showZoomDialogReference" width="80vw" :close-on-click-modal="true" :modal-style="{ height: '78vh' }" style="height:78vh;" class="zoom-dialog">
+            <div
+              class="zoom-img-container"
+              @wheel="handleZoomWheelReference"
+              style="height:calc(78vh - 60px);display:flex;align-items:center;justify-content:center;overflow:hidden;"
+            >
+              <img
+                :src="referenceImage"
+                alt="放大预览"
+                :style="`max-width:100%;max-height:78vh;transform:scale(${zoomReference});transition:transform 0.2s;display:block;margin:auto;`"
+              />
+            </div>
+            <div style="margin-top:8px;color:#222;text-align:center;">缩放：{{ (zoomReference * 100).toFixed(0) }}%</div>
           </el-dialog>
         </div>
       </div>
@@ -246,12 +364,31 @@ const showEditDialogMain = ref(false)
 // 新增状态
 const mainImageId = ref('')
 
+// 副图相关状态
+const referenceImage = ref('')
+const referenceImageName = ref<string>('')
+const referenceImageId = ref('')
+const currentStep = ref(1)
+
+// 副图本地预览弹窗相关状态
+const showPreviewDialogReference = ref(false)
+const previewImageReference = ref('')
+const selectedFileReference = ref<File | null>(null)
+const fileInputReference = ref<HTMLInputElement>()
+
+// 副图编辑弹窗相关状态
+const showEditDialogReference = ref(false)
+
+// 副图放大预览弹窗相关状态
+const showZoomDialogReference = ref(false)
+const zoomReference = ref(1)
+
 // 新增：跟踪是否正在处理颜色修改任务
 const isProcessingColorChangeTask = ref(false)
 
-// 计算属性
+// 计算属性 - 需要主图和副图都上传才能生成
 const canGenerate = computed(() => {
-  return !!mainImage.value && !!mainImageName.value
+  return !!mainImage.value && !!mainImageName.value && !!referenceImage.value && !!referenceImageName.value
 })
 
 // 主图上传相关方法
@@ -358,14 +495,124 @@ const handleImageEdited = (editedImageUrl: string, imageId?: number) => {
   showEditDialogMain.value = false;
 };
 
-// 清除图片
-const handleClearImage = () => {
+// 步骤控制方法
+const setStep = (step: number) => {
+  if (step === 1 || (step === 2 && mainImage.value)) {
+    currentStep.value = step
+  }
+}
+
+// 清除主图
+const handleClearMainImage = () => {
   mainImage.value = ''
   mainImageName.value = ''
-  originalImageId.value = '' // 清除原图ID
+  mainImageId.value = ''
   if (isViewingResults.value) {
     isViewingResults.value = false
     resultImages.value = []
+  }
+}
+
+// 清除副图
+const handleClearReferenceImage = () => {
+  referenceImage.value = ''
+  referenceImageName.value = ''
+  referenceImageId.value = ''
+}
+
+// 副图上传相关方法
+const handleReferenceUploadClick = () => {
+  fileInputReference.value?.click();
+};
+
+const handleReferenceFileSelect = (event: Event) => {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (file) {
+    if (!file.type.startsWith('image/')) {
+      ElMessage.error('请选择图片文件')
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      ElMessage.error('文件大小不能超过10MB')
+      return
+    }
+    selectedFileReference.value = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+      previewImageReference.value = e.target?.result as string;
+      showPreviewDialogReference.value = true;
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+const confirmReferencePreview = () => {
+  let fileToUpload: File | null = null;
+  const doUpload = (file: File) => {
+    uploadFile(file, (_, imageId) => {
+      if (imageId) {
+        referenceImageName.value = String(imageId);
+        referenceImageId.value = String(imageId);
+      }
+      referenceImage.value = previewImageReference.value;
+      showEditDialogReference.value = true;
+      showPreviewDialogReference.value = false;
+      if (fileInputReference.value) fileInputReference.value.value = '';
+      selectedFileReference.value = null;
+      previewImageReference.value = '';
+    });
+  };
+  if (selectedFileReference.value) {
+    fileToUpload = selectedFileReference.value;
+    doUpload(fileToUpload);
+  } else if (previewImageReference.value) {
+    if (previewImageReference.value.startsWith('data:image/')) {
+      // base64
+      fileToUpload = dataURLtoFile(previewImageReference.value, 'referenceImg.jpg');
+      doUpload(fileToUpload);
+    } else if (previewImageReference.value.startsWith('http') || previewImageReference.value.startsWith('blob:')) {
+      // url 或 blob
+      fetch(previewImageReference.value)
+        .then(res => res.blob())
+        .then(blob => {
+          fileToUpload = new File([blob], 'referenceImg.jpg', { type: blob.type });
+          doUpload(fileToUpload);
+        });
+    }
+  }
+};
+
+const cancelReferencePreview = () => {
+  showPreviewDialogReference.value = false;
+  // 清空文件输入框
+  if (fileInputReference.value) {
+    fileInputReference.value.value = '';
+  }
+  selectedFileReference.value = null;
+  previewImageReference.value = '';
+};
+
+// 副图编辑弹窗相关方法
+const closeEditDialogReference = () => {
+  showEditDialogReference.value = false;
+};
+
+const handleReferenceImageEdited = (editedImageUrl: string, imageId?: number) => {
+  referenceImage.value = editedImageUrl;
+  if (imageId) {
+    referenceImageName.value = String(imageId);
+    referenceImageId.value = String(imageId);
+  }
+  showEditDialogReference.value = false;
+};
+
+// 副图放大预览相关方法
+function handleZoomWheelReference(e: WheelEvent) {
+  e.preventDefault();
+  if (e.deltaY < 0) {
+    zoomReference.value = Math.min(zoomReference.value + 0.1, 5);
+  } else {
+    zoomReference.value = Math.max(zoomReference.value - 0.1, 0.2);
   }
 }
 
@@ -509,8 +756,8 @@ watch(() => shoeStore.aiTaskImages, (newImages) => {
 
 // 处理生成按钮点击
 const handleGenerate = async () => {
-  if (!mainImage.value || !mainImageName.value) {
-    ElMessage.warning('请先上传图片')
+  if (!mainImage.value || !mainImageName.value || !referenceImage.value || !referenceImageName.value) {
+    ElMessage.warning('请先上传主图和参考配色图')
     return
   }
 
@@ -519,16 +766,19 @@ const handleGenerate = async () => {
   try {
     isProcessingColorChangeTask.value = true; // 设置为颜色修改任务进行中
     
-    // 使用当前上传的图片ID，避免使用全局状态中的旧ID
-    const imageIdToUse = Number(mainImageName.value)
-    console.log('🔍 颜色修改调试信息:', {
-      当前上传图片ID: Number(mainImageName.value),
-      最终使用ID: imageIdToUse,
-      来源: '当前上传的图片'
+    // 使用双图配色API
+    const majorIdToUse = Number(mainImageName.value)
+    const minorIdToUse = Number(referenceImageName.value)
+    console.log('🔍 双图配色调试信息:', {
+      主图ID: majorIdToUse,
+      副图ID: minorIdToUse,
+      主图来源: '当前上传的主图',
+      副图来源: '当前上传的参考图'
     })
     
     const requestData: PcxhRequest = {
-      imageId: imageIdToUse
+      majorId: majorIdToUse,
+      minorId: minorIdToUse
     }
     
     const response = await pcxh(requestData)

@@ -82,9 +82,10 @@ export interface XdhhResponse {
   viewUrls: string[];
 }
 
-// 配色换新接口
+// 配色换新接口 - 修改为双图配色
 export interface PcxhRequest {
-  majorId: number;    // 鞋面图ID
+  majorId: number;    // 主图ID
+  minorId: number;    // 副图ID
 }
 export interface PcxhResponse {
   promptId: string;
@@ -199,10 +200,10 @@ export function getCurrentToken(): string | null {
 export function uploadImage(file: File) {
   const formData = new FormData()
   formData.append('image', file)
-  
+
   const token = localStorage.getItem('token')
   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
   // 更新为新的API路径
   return axios.post('/api/oss/upload', formData, {
     headers: {
@@ -228,11 +229,11 @@ export function uploadImage(file: File) {
 // export function feedbackImage(imageId: number | { id: number }) {
 //   // 确保imageId是一个数字
 //   const id = typeof imageId === 'object' ? imageId.id : imageId;
-  
+
 //   // 使用axios直接请求图片，设置responseType为blob以正确处理二进制数据
 //   const token = localStorage.getItem('token')
 //   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
 //   return axios.get(`/api/oss/feedback?imageId=${id}`, {
 //     headers: {
 //       'Authorization': bearerToken,
@@ -252,11 +253,11 @@ export function uploadImage(file: File) {
 export function feedbackImage(imageId: number | { id: number }) {
   // 确保imageId是一个数字
   const id = typeof imageId === 'object' ? imageId.id : imageId;
-  
+
   // 使用axios请求图片，现在返回的是JSON格式的URL
   const token = localStorage.getItem('token')
   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
   return axios.get(`/api/oss/feedback?imageId=${id}`, {
     headers: {
       'Authorization': bearerToken,
@@ -265,7 +266,7 @@ export function feedbackImage(imageId: number | { id: number }) {
     // 移除 responseType: 'blob'，因为现在返回的是JSON
   }).then(response => {
     console.log('feedbackImage 响应:', response)
-    
+
     // 现在返回的是JSON格式，直接返回
     if (response.data && response.data.code === 200) {
       return {
@@ -296,11 +297,11 @@ export function feedbackImage(imageId: number | { id: number }) {
 export function buildImageUrl(imageId: number | { id: number }): Promise<string> {
   // 确保imageId是一个数字
   const id = typeof imageId === 'object' ? imageId.id : imageId;
-  
+
   // 获取token
   const token = localStorage.getItem('token')
   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
   // 返回Promise以异步获取图片URL
   return new Promise((resolve, reject) => {
     // 首先尝试获取JSON格式的响应（新的格式）
@@ -312,7 +313,7 @@ export function buildImageUrl(imageId: number | { id: number }): Promise<string>
       // 不设置 responseType，让axios自动判断
     }).then(response => {
       console.log('buildImageUrl 响应:', response)
-      
+
       // 检查是否是JSON格式的响应
       if (response.data && typeof response.data === 'object' && response.data.code === 200) {
         // 新的JSON格式，直接返回OSS URL
@@ -338,15 +339,15 @@ const processResponseUrls = async (responseData: any) => {
     responseData.msg = "请先选择需要更改的区域！";
     return responseData;
   }
-  
+
   if (responseData.code === 0 || responseData.code === 200) {
     // 确定viewUrls的位置
     let viewUrls = responseData.data?.viewUrls || responseData.viewUrls;
-    
+
     if (viewUrls && Array.isArray(viewUrls)) {
       // 创建一个新数组来存储处理后的URL
       const processedUrls = [];
-      
+
       // 处理每个URL
       for (let i = 0; i < viewUrls.length; i++) {
         const url = viewUrls[i];
@@ -370,7 +371,7 @@ const processResponseUrls = async (responseData: any) => {
           processedUrls.push(url); // 回退到原始URL
         }
       }
-      
+
       // 更新响应中的viewUrls
       if (responseData.data?.viewUrls) {
         responseData.data.viewUrls = processedUrls;
@@ -379,7 +380,7 @@ const processResponseUrls = async (responseData: any) => {
       }
     }
   }
-  
+
   return responseData;
 };
 
@@ -387,7 +388,7 @@ const processResponseUrls = async (responseData: any) => {
 export function strhzxs(data: StrhzxsRequest) {
   const token = localStorage.getItem('token')
   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
   return axios.post('/api/image/gene/strhzxs', data, {
     headers: {
       'Authorization': bearerToken,
@@ -414,7 +415,7 @@ export function strhzxs(data: StrhzxsRequest) {
 export function tjtws(data: TjtwsRequest) {
   const token = localStorage.getItem('token')
   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
   return axios.post('/api/image/gene/tjtws', data, {
     headers: {
       'Authorization': bearerToken,
@@ -442,7 +443,7 @@ export function xdhh(data: XdhhRequest) {
   // 获取token
   const token = localStorage.getItem('token')
   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
   // 添加认证头
   return axios.post('/api/image/gene/xdhh', data, {
     headers: {
@@ -469,7 +470,7 @@ export function xdhh(data: XdhhRequest) {
 export function pcxh(data: PcxhRequest) {
   const token = localStorage.getItem('token')
   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
   return axios.post('/api/image/zdps', data, {
     headers: {
       'Authorization': bearerToken,
@@ -490,7 +491,7 @@ export function gqfd(data: GqfdRequest) {
   // 获取token
   const token = localStorage.getItem('token')
   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
   // 添加认证头
   return axios.post('/api/image/gene/gqfd', data, {
     headers: {
@@ -512,7 +513,7 @@ export function xc(data: XcRequest) {
   // 获取token
   const token = localStorage.getItem('token')
   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
   // 添加认证头
   return axios.post('/api/image/gene/xc', data, {
     headers: {
@@ -534,7 +535,7 @@ export function kt(data: KtRequest) {
   // 获取token
   const token = localStorage.getItem('token')
   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
   // 添加认证头
   return axios.post('/api/image/gene/kt', data, {
     headers: {
@@ -565,7 +566,7 @@ export function qsy(data: QsyRequest) {
     return response.data // 直接返回包含taskld的响应
   }).catch(error => {
     console.error('去水印错误:', error)
-    throw error 
+    throw error
   })
 }
 //线稿图
@@ -595,10 +596,10 @@ export function xgt(data: XgtRequest) {
 export function uploadMask(file: File, originalId: string) {
   const formData = new FormData()
   formData.append('image', file)
-  
+
   const token = localStorage.getItem('token')
   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
   // 根据你提供的API格式，originalId作为查询参数
   return axios.post(`/api/oss/mask?originalId=${originalId}`, formData, {
     headers: {
@@ -626,7 +627,7 @@ export function uploadMask(file: File, originalId: string) {
 export function tstok(data: TstokRequest) {
   const token = localStorage.getItem('token')
   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
   return axios.post('/api/image/gene/tstok', data, {
     headers: {
       'Authorization': bearerToken,
@@ -653,7 +654,7 @@ export function tstok(data: TstokRequest) {
 export function jbch(data: JbchRequest) {
   const token = localStorage.getItem('token')
   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
   return axios.post('/api/image/gene/jbch', data, {
     headers: {
       'Authorization': bearerToken,
@@ -680,7 +681,7 @@ export function jbch(data: JbchRequest) {
 export function lorewst(data: LorewstRequest) {
   const token = localStorage.getItem('token')
   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
   return axios.post('/api/image/gene/lorewst', data, {
     headers: {
       'Authorization': bearerToken,
@@ -707,7 +708,7 @@ export function lorewst(data: LorewstRequest) {
 export function xf(data: XfRequest) {
   const token = localStorage.getItem('token')
   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
   return axios.post('/api/image/gene/xf', data, {
     headers: {
       'Authorization': bearerToken,
@@ -738,14 +739,14 @@ export function uploadMaskCanvas(maskCanvas: HTMLCanvasElement, originalId: numb
         reject(new Error('蒙版导出失败'));
         return;
       }
-      
+
       try {
         // 创建文件对象
         const file = new File([blob], `mask_${Date.now()}.png`, { type: 'image/png' });
-        
+
         // 调用现有的uploadMask函数
         const response = await uploadMask(file, String(originalId));
-        
+
         if (response.code === 0 || response.code === 200) {
           // 返回新生成的图片ID
           resolve(response.data.id);
@@ -774,29 +775,29 @@ export function uploadMaskFromDataUrl(maskDataUrl: string, originalId: number | 
       reject(new Error('无法创建canvas上下文'));
       return;
     }
-    
+
     // 创建图片对象
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    
+
     img.onload = () => {
       // 设置canvas尺寸
       canvas.width = img.width;
       canvas.height = img.height;
-      
+
       // 绘制图片到canvas
       ctx.drawImage(img, 0, 0);
-      
+
       // 上传canvas
       uploadMaskCanvas(canvas, originalId)
         .then(resolve)
         .catch(reject);
     };
-    
+
     img.onerror = () => {
       reject(new Error('蒙版图片加载失败'));
     };
-    
+
     // 设置图片源
     img.src = maskDataUrl;
   });
@@ -809,7 +810,7 @@ export function uploadMaskFromDataUrl(maskDataUrl: string, originalId: number | 
 export function getTaskResult(taskld: string) {
   const token = localStorage.getItem('token')
   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
   return axios.get(`/api/task/result/${taskld}`, {
     headers: {
       'Authorization': bearerToken,
@@ -831,7 +832,7 @@ export function getTaskResult(taskld: string) {
 export function getTaskStatus(taskld: string) {
   const token = localStorage.getItem('token')
   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
   return axios.get(`/api/task/status/${taskld}`, {
     headers: {
       'Authorization': bearerToken,
@@ -854,7 +855,7 @@ export function getTaskStatus(taskld: string) {
 export function getImageResult(taskld: string) {
   const token = localStorage.getItem('token')
   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
   return axios.get(`/image/request?taskld=${taskld}`, {
     headers: {
       'Authorization': bearerToken,
@@ -876,7 +877,7 @@ export function getImageResult(taskld: string) {
 export function requestWaitResult(taskld: string) {
   const token = localStorage.getItem('token')
   const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
+
   return axios.get(`/image/request?taskld=${taskld}`, {
     headers: {
       'Authorization': bearerToken,

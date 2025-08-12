@@ -858,14 +858,20 @@ const handleGenerate = async () => {
       viewUrls = result.viewUrls;
     }
 
-    // 优先判断 WebSocket 字段
-    if (result && result.taskId) {
-      console.log('WebSocket参数:', result.taskId);
-      shoeStore.setAiTaskInfo({
-        taskId: result.taskId
-      });
-      startAiTaskWs(result.taskId, 'partial-modify');
-      // 不要直接 return，让 watch 监听 WebSocket 结果
+    // 检查API响应格式 - 新的API格式：直接返回taskId
+    if (result && typeof result === 'string') {
+      const taskId = result;
+      console.log('✅ 获得taskId:', taskId);
+      
+      // 立即设置任务状态为运行中，显示进度条
+      shoeStore.setAiTaskStatus('running');
+      shoeStore.setAiTaskProgress(0);
+      
+      // 启动WebSocket监听
+      startAiTaskWs(taskId, 'partial-modify');
+      
+      ElMessage.success('局部修改任务已提交，正在处理中...');
+      return;
     } else if (viewUrls.length > 0) {
       // 没有 WebSocket 字段才直接处理结果
       resultDialogImages.value = viewUrls;

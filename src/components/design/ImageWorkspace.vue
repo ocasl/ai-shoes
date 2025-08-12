@@ -370,10 +370,65 @@
             </div>
           </div>
         </div>
+
+        <!-- 工具选项面板 -->
+        <div class="tool-modal-options">
+          <!-- 涂抹工具选项面板 -->
+          <div v-if="currentTool === 'brush'" class="modal-options-panel">
+            <span class="modal-options-title">局部涂抹</span>
+            <p class="modal-options-desc">使用画笔涂抹想要修改的区域</p>
+
+            <div class="modal-options-slider">
+              <span class="option-label">画笔大小</span>
+              <el-slider v-model="brushSize" :min="5" :max="50" :step="1" class="brush-slider" />
+              <span>{{ brushSize }}px</span>
+            </div>
+
+            <div class="modal-options-controls">
+              <el-button size="large" @click="clearBrushCanvas">清除</el-button>
+              <el-button size="large" type="primary" @click="confirmBrush">确定</el-button>
+              <el-button size="large" @click="closeToolModal">取消</el-button>
+            </div>
+          </div>
+
+          <!-- 裁剪工具选项面板 -->
+          <div v-if="currentTool === 'crop'" class="modal-options-panel">
+            <span class="modal-options-title">裁切图片</span>
+            <p class="modal-options-desc">拖拽裁剪框调整裁剪区域</p>
+
+            <div class="modal-options-controls">
+              <el-button size="large" @click="resetCropArea">重置</el-button>
+              <el-button size="large" type="primary" @click="confirmCrop">确定</el-button>
+              <el-button size="large" @click="closeToolModal">取消</el-button>
+            </div>
+          </div>
+
+          <!-- 蒙版工具选项面板 -->
+          <div v-if="currentTool === 'mask'" class="modal-options-panel">
+            <span class="modal-options-title">标记可选</span>
+            <p class="modal-options-desc">使用画笔标记想要修改的区域</p>
+
+            <div class="modal-options-slider">
+              <span class="option-label">画笔大小</span>
+              <el-slider v-model="maskBrushSize" :min="5" :max="50" :step="1" class="brush-slider" />
+              <span>{{ maskBrushSize }}px</span>
+            </div>
+
+            <div class="mask-preview-toggle">
+              <el-checkbox v-model="showMaskPreview">显示蒙版预览</el-checkbox>
+            </div>
+
+            <div class="modal-options-controls">
+              <el-button size="large" type="primary" @click="confirmMask">确定</el-button>
+              <el-button size="large" @click="closeToolModal">取消</el-button>
+            </div>
+          </div>
+        </div>
       </div>
     </el-dialog>
   </div>
 </template>
+
 
 <script setup lang="ts">
 import { ref, defineProps, defineEmits, computed, onMounted, onUnmounted, watch, defineExpose, nextTick } from 'vue'
@@ -693,6 +748,81 @@ const shoeStore = useShoeStore()
 // 生成唯一的组件ID，用于区分不同的ImageWorkspace实例
 const componentId = ref(`image-workspace-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
 
+// 执行带蒙版的抠图处理
+const performCutoutWithMask = async (imageId: number) => {
+  try {
+    console.log('🎯 开始执行带蒙版的抠图，图片ID:', imageId)
+
+    const requestData: KtRequest = {
+      imageId: imageId
+    }
+
+    const response = await kt(requestData)
+    console.log('🎯 带蒙版抠图响应:', response)
+
+    if (response.code === 0 || response.code === 200) {
+      const result = response.data
+      console.log('🎯 带蒙版抠图API返回的data:', result)
+      console.log('🎯 data类型:', typeof result)
+
+      // 检查新的API格式：直接返回taskId
+      if (result && typeof result === 'string') {
+        const taskId = result;
+        console.log('🎯 获得taskId:', taskId);
+
+        // 直接查询结果
+        await queryTaskResultInWorkspace(taskId);
+        return;
+      }
+
+      // 兼容老格式：检查 ossUrls 或 viewUrls
+      if (result && (result.ossUrls || result.viewUrls)) {
+        const imageUrls = result.ossUrls || result.viewUrls
+        console.log('🎯 检查到直接返回的图片URL:', imageUrls)
+
+        if (imageUrls && Array.isArray(imageUrls) && imageUrls.length > 0) {
+          const segmentedImageUrl = imageUrls[0]
+
+          // 更新编辑台图片
+          editingImageUrl.value = segmentedImageUrl
+          hasEdits.value = true
+
+          // 保存抠图结果
+          const ossId = result.ossIds && result.ossIds.length > 0 ? result.ossIds[0] : undefined
+          segmentationOssId.value = ossId
+          isSegmentationOnly.value = true
+
+          // 设置编辑信息
+          editedImageInfo.value = {
+            url: segmentedImageUrl,
+            id: ossId
+          }
+
+          // 设置当前工具为抠图
+          currentTool.value = 'segmentation'
+
+          // 设置全局状态
+          if (ossId) {
+            shoeStore.setSegmentedImageId(ossId)
+            console.log('🎯 已设置全局抠图图片ID:', ossId)
+          }
+
+          ElMessage.success('抠图完成')
+          return
+        }
+      }
+
+      console.error('🎯 未知的API响应格式:', result)
+      ElMessage.warning('抠图成功但返回格式异常')
+    } else {
+      throw new Error(response.msg || '抠图失败')
+    }
+  } catch (error: any) {
+    console.error('🎯 带蒙版抠图失败:', error)
+    ElMessage.error('抠图失败: ' + (error.message || '未知错误'))
+  }
+}
+
 // 在ImageWorkspace中查询任务结果的函数
 const queryTaskResultInWorkspace = async (taskId: string, retryCount = 0) => {
   const maxRetries = 5; // 最多重试5次
@@ -700,7 +830,7 @@ const queryTaskResultInWorkspace = async (taskId: string, retryCount = 0) => {
 
   try {
     console.log(`🔍 [ImageWorkspace] 查询任务结果 (第${retryCount + 1}次):`, taskId);
-    
+
     const requestUrl = `/api/image/request?taskId=${taskId}`;
     const token = localStorage.getItem('token');
     const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`;
@@ -712,7 +842,7 @@ const queryTaskResultInWorkspace = async (taskId: string, retryCount = 0) => {
     });
 
     console.log('📡 [ImageWorkspace] 查询响应状态:', response.status);
-    
+
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
@@ -727,10 +857,10 @@ const queryTaskResultInWorkspace = async (taskId: string, retryCount = 0) => {
 
       if (imageUrls && Array.isArray(imageUrls) && imageUrls.length > 0) {
         console.log('✅ [ImageWorkspace] 查询成功，获取到图片链接:', imageUrls);
-        
+
         // 使用第一张图片作为抠图结果
         const segmentedImageUrl = imageUrls[0];
-        
+
         // 更新编辑台图片
         editingImageUrl.value = segmentedImageUrl;
         hasEdits.value = true;
@@ -773,7 +903,7 @@ const queryTaskResultInWorkspace = async (taskId: string, retryCount = 0) => {
 
   } catch (error) {
     console.error(`❌ [ImageWorkspace] 查询失败 (第${retryCount + 1}次):`, error);
-    
+
     // 如果还有重试机会，等待后重试
     if (retryCount < maxRetries) {
       console.log(`🔄 [ImageWorkspace] ${retryDelay}ms后进行第${retryCount + 2}次重试...`);
@@ -3093,17 +3223,17 @@ const handleSegmentation = async () => {
       const result = response.data
       console.log('抠图API返回的data:', result)
       console.log('data类型:', typeof result)
-      
+
       // 检查新的API格式：直接返回taskId
       if (result && typeof result === 'string') {
         const taskId = result;
         console.log('获得taskId:', taskId);
-        
+
         // 直接查询结果，不使用WebSocket（抠图很快）
         await queryTaskResultInWorkspace(taskId);
         return;
       }
-      
+
       // 兼容老格式：检查 ossUrls 或 viewUrls
       if (result && (result.ossUrls || result.viewUrls)) {
         const imageUrls = result.ossUrls || result.viewUrls
@@ -4141,13 +4271,41 @@ const initMaskCanvas = () => {
       canvas.width = imgWidth
       canvas.height = imgHeight
 
-      // 重要：canvas必须完全覆盖在图片上方
-      canvas.style.position = 'absolute'
-      canvas.style.top = `${imgRect.top - container.getBoundingClientRect().top}px`
-      canvas.style.left = `${imgRect.left - container.getBoundingClientRect().left}px`
-      canvas.style.width = `${imgWidth}px`
-      canvas.style.height = `${imgHeight}px`
-      canvas.style.pointerEvents = 'auto'
+      // 🔑 关键修复：使用与局部涂抹相同的精确定位方法
+      const imageRect = image.getBoundingClientRect()
+      const containerRect = container.getBoundingClientRect()
+
+      // 计算图片相对于容器的偏移量
+      const offsetLeft = imageRect.left - containerRect.left
+      const offsetTop = imageRect.top - containerRect.top
+
+      // 设置Canvas尺寸与图片显示尺寸一致
+      const imageWidth = image.offsetWidth
+      const imageHeight = image.offsetHeight
+
+      canvas.width = imageWidth
+      canvas.height = imageHeight
+
+      // 🔑 修复定位：使用cssText强制设置样式，与局部涂抹保持一致
+      canvas.style.cssText = `
+        position: absolute !important;
+        left: ${offsetLeft}px !important;
+        top: ${offsetTop}px !important;
+        width: ${imageWidth}px !important;
+        height: ${imageHeight}px !important;
+        pointer-events: auto !important;
+        z-index: 10 !important;
+        cursor: crosshair !important;
+        transform: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      `
+
+      console.log('🔧 蒙版Canvas定位修复完成:', {
+        图片位置: { left: offsetLeft, top: offsetTop },
+        Canvas位置: { left: canvas.style.left, top: canvas.style.top },
+        尺寸: { width: imageWidth, height: imageHeight }
+      })
       canvas.style.zIndex = '10'
 
       // 获取Canvas上下文

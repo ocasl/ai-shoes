@@ -44,7 +44,7 @@ export const useShoeStore = defineStore('shoe', {
       isSegmented: false,
     } as CurrentImageState,
   }),
-  
+
   // getter
   getters: {
     currentDesign: (state) => {
@@ -60,7 +60,7 @@ export const useShoeStore = defineStore('shoe', {
       return state.currentImage.currentId || state.currentImage.originalId
     },
   },
-  
+
   // action
   actions: {
     addDesign(design: { name: string; color: string; size: number }) {
@@ -68,7 +68,7 @@ export const useShoeStore = defineStore('shoe', {
       this.designs.push({ ...design, id })
       return id
     },
-    
+
     removeDesign(id: number) {
       const index = this.designs.findIndex((d: ShoeDesign) => d.id === id)
       if (index > -1) {
@@ -78,7 +78,7 @@ export const useShoeStore = defineStore('shoe', {
         }
       }
     },
-    
+
     setCurrentDesign(id: number) {
       this.currentDesignId = id
     },
@@ -122,7 +122,7 @@ export const useShoeStore = defineStore('shoe', {
         当前currentId: this.currentImage.currentId,
         当前originalId: this.currentImage.originalId
       })
-      
+
       this.currentImage.originalId = id
       // 总是更新currentId为最新的图片ID，因为用户可能进行了新的编辑操作
       this.currentImage.currentId = id
@@ -136,17 +136,17 @@ export const useShoeStore = defineStore('shoe', {
         当前currentId: this.currentImage.currentId,
         当前originalId: this.currentImage.originalId
       })
-      
+
       this.currentImage.currentId = ossId
       this.currentImage.isSegmented = true
-      
+
       console.log('🌐 抠图后状态:', {
         currentId: this.currentImage.currentId,
         originalId: this.currentImage.originalId,
         isSegmented: this.currentImage.isSegmented
       })
     },
-        // 重置图片状态
+    // 重置图片状态
     resetImageState() {
       this.currentImage = {
         originalId: null,
