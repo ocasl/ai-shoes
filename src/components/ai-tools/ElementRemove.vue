@@ -211,6 +211,15 @@
         <div class="loading-text">AI任务执行中</div>
       </div>
     </div>
+
+    <!-- 图片加载中弹窗 -->
+    <div v-if="shoeStore.aiTaskStatus === 'loading_result'" class="loading-overlay">
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">AI处理完成，图片正在加载中...</div>
+        <div class="loading-subtitle">请稍候，马上就好</div>
+      </div>
+    </div>
   </div>
 
 <!-- 主图放大预览弹窗 -->

@@ -11,6 +11,15 @@
       </div>
     </div>
 
+    <!-- 图片加载中覆盖层 -->
+    <div v-if="shoeStore.aiTaskStatus === 'loading_result'" class="progress-overlay">
+      <div class="progress-container">
+        <div class="loading-spinner"></div>
+        <div class="progress-label">AI处理完成，图片正在加载中...</div>
+        <div class="progress-sublabel">请稍候，马上就好</div>
+      </div>
+    </div>
+
     <div class="workspace-container">
       <!-- 图片显示区域 -->
       <div class="image-container" ref="imageContainerRef">
@@ -3083,66 +3092,58 @@ const handleSegmentation = async () => {
   }
 
   try {
-    // 从当前图片URL中提取图片名称
+    // 从当前图片URL中提取图片名称或获取图片ID的逻辑保持不变...
     let imageName = ''
     let imageId: number | null = null
+    
     // 优先检查是否有编辑后的图片信息
     if (hasEdits.value && editedImageInfo.value && editedImageInfo.value.id) {
-      // 如果有编辑后的图片ID，直接使用
       imageId = editedImageInfo.value.id
       console.log('使用编辑后的图片ID:', imageId)
     } else {
-      // 尝试从当前图片URL中获取图片名称
+      // 尝试从当前图片URL中获取图片名称的逻辑...
       const urlParts = currentImageUrl.split('?')
       if (urlParts.length > 1) {
         const params = new URLSearchParams(urlParts[1])
         imageName = params.get('name') || params.get('filename') || ''
-
-        // 尝试将name转换为数字ID
         const parsedId = parseInt(imageName, 10)
         if (!isNaN(parsedId)) {
           imageId = parsedId
         }
       }
 
-      // 如果仍然没有名称，尝试从URL路径中提取文件名
+      // 如果仍然没有名称，尝试从URL路径中提取文件名...
       if (!imageName && currentImageUrl.includes('/')) {
         const pathParts = currentImageUrl.split('/')
         let potentialName = pathParts[pathParts.length - 1]
-
-        // 去除可能的查询参数
         if (potentialName.includes('?')) {
           potentialName = potentialName.split('?')[0]
         }
-
-        // 如果看起来像文件名（有扩展名），则使用它
         if (potentialName.includes('.')) {
           imageName = potentialName
         }
       }
 
-      // 最后才尝试从props.originalImageName获取（作为后备）
+      // 最后才尝试从props.originalImageName获取
       if (imageId === null && props.originalImageName) {
         imageName = props.originalImageName
-        // 尝试将originalImageName转换为数字ID
         const parsedId = parseInt(imageName, 10)
         if (!isNaN(parsedId)) {
           imageId = parsedId
         }
       }
     }
+
     // 如果以上方法都无法获得图片ID，则需要先上传图片
     if (imageId === null) {
       console.log('无法从URL获取图片ID，尝试上传图片:', currentImageUrl.substring(0, 50) + '...')
-      // 将URL转换为Blob/File对象
+      // 图片上传逻辑保持不变...
       let file: File
 
       if (currentImageUrl.startsWith('data:image')) {
-        // 对于base64格式
         const blob = dataURLtoBlob(currentImageUrl)
         file = new File([blob], 'segmentation-image.png', { type: 'image/png' })
       } else {
-        // 对于HTTP URL，先下载再上传
         try {
           const response = await fetch(currentImageUrl, {
             mode: 'cors',
@@ -3152,8 +3153,7 @@ const handleSegmentation = async () => {
           file = new File([blob], 'segmentation-image.png', { type: blob.type || 'image/png' })
         } catch (fetchError) {
           console.error('获取图片失败:', fetchError)
-
-          // 创建一个新的Image元素来下载图片
+          // 创建Image元素下载图片的逻辑...
           const downloadPromise = new Promise<File>((resolve, reject) => {
             const img = new Image()
             img.crossOrigin = 'anonymous'
@@ -3194,7 +3194,6 @@ const handleSegmentation = async () => {
         imageId = imageData.id
         console.log('成功上传图片并获取ID:', imageId)
 
-        // 设置全局原始图片ID
         if (imageId) {
           shoeStore.setOriginalImageId(imageId)
           console.log('🌐 已设置全局原始图片ID:', imageId)
@@ -3203,7 +3202,6 @@ const handleSegmentation = async () => {
         throw new Error('上传图片失败: ' + (uploadResponse.msg || '未知错误'))
       }
     } else {
-      // 如果已经有图片ID，也设置到全局状态
       if (imageId) {
         shoeStore.setOriginalImageId(imageId)
         console.log('🌐 已设置全局原始图片ID:', imageId)
@@ -3222,15 +3220,14 @@ const handleSegmentation = async () => {
     if (response.code === 0 || response.code === 200) {
       const result = response.data
       console.log('抠图API返回的data:', result)
-      console.log('data类型:', typeof result)
 
-      // 检查新的API格式：直接返回taskId
+      // 🔥 关键修改：检查新的API格式，直接返回taskId，使用轮询替代WebSocket
       if (result && typeof result === 'string') {
         const taskId = result;
         console.log('获得taskId:', taskId);
 
-        // 直接查询结果，不使用WebSocket（抠图很快）
-        await queryTaskResultInWorkspace(taskId);
+        // 使用轮询替代WebSocket
+        await pollImageResult(taskId);
         return;
       }
 
@@ -3239,59 +3236,30 @@ const handleSegmentation = async () => {
         const imageUrls = result.ossUrls || result.viewUrls
 
         if (imageUrls && Array.isArray(imageUrls) && imageUrls.length > 0) {
-          // 如果有直接返回的图片URL，直接使用
+          // 直接返回图片的处理逻辑保持不变...
           const segmentedImageUrl = imageUrls[0]
-
-          // 更新编辑台图片
           editingImageUrl.value = segmentedImageUrl
-
-          // 标记为有编辑
           hasEdits.value = true
 
-          // 保存一键抠图返回的ossId
           const ossId = result.ossIds && result.ossIds.length > 0 ? result.ossIds[0] : undefined
           segmentationOssId.value = ossId
           isSegmentationOnly.value = true
 
-          // 设置编辑信息，包含图片ID
           editedImageInfo.value = {
             url: segmentedImageUrl,
-            id: ossId // 保存ossId作为图片ID
+            id: ossId
           }
 
-          // 设置当前工具为抠图
           currentTool.value = 'segmentation'
 
-          // 设置全局状态，让其他功能使用抠图后的ossId
           if (ossId) {
             shoeStore.setSegmentedImageId(ossId)
             console.log('🌐 已设置全局抠图图片ID:', ossId)
           }
 
           ElMessage.success('抠图完成')
-          console.log('🎯 抠图API返回 - 详细信息:', {
-            imageUrl: segmentedImageUrl,
-            ossId: ossId,
-            'result.ossIds': result.ossIds,
-            'segmentationOssId.value': segmentationOssId.value,
-            'isSegmentationOnly.value': isSegmentationOnly.value,
-            'editedImageInfo.value': editedImageInfo.value,
-            '全局当前图片ID': shoeStore.currentImageId
-          })
           return
         }
-      }
-
-      // 如果有 promptId，启动 WebSocket
-      if (result && result.promptId) {
-        console.log('启动WebSocket监听:', result.promptId)
-        // 检查API响应格式 - 新的API格式：直接返回taskId
-        if (result && typeof result === 'string') {
-          const taskId = result;
-          console.log('获得taskId:', taskId);
-          startAiTaskWs(taskId, 'cutout');
-        }
-        return
       }
 
       ElMessage.warning('抠图成功但未获得图片')
@@ -3305,6 +3273,125 @@ const handleSegmentation = async () => {
     currentTool.value = ''
   }
 }
+
+
+// 轮询获取图片结果的函数 这个是一键抠图的
+const pollImageResult = async (taskId: string) => {
+  const maxAttempts = 60; // 最大尝试次数（30秒）
+  const interval = 1000; // 轮询间隔（1秒）
+  let attempt = 0;
+
+  console.log('🔄 开始轮询图片结果，taskId:', taskId);
+
+  // 显示加载提示
+  const loading = ElLoading.service({
+    lock: true,
+    text: '正在处理抠图，请稍候...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  });
+
+  const poll = async (): Promise<boolean> => {
+    try {
+      attempt++;
+      console.log(`🔍 第${attempt}次轮询图片结果...`);
+
+      const requestUrl = `/api/image/request?taskId=${taskId}`;
+      const token = localStorage.getItem('token');
+      const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`;
+
+      const response = await fetch(requestUrl, {
+        headers: {
+          'Authorization': bearerToken,
+        }
+      });
+
+      console.log('📡 轮询响应状态:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('📸 轮询结果:', data);
+
+      if (data.code === 200 && data.data) {
+        // 检查返回的图片数据
+        const imageUrls = data.data.images || data.data.viewUrls || data.data.ossUrls || [];
+        const ossIds = data.data.ossIds || [];
+
+        if (imageUrls && Array.isArray(imageUrls) && imageUrls.length > 0) {
+          console.log('✅ 轮询成功，获取到图片链接:', imageUrls);
+
+          // 使用第一张图片作为抠图结果
+          const segmentedImageUrl = imageUrls[0];
+
+          // 更新编辑台图片
+          editingImageUrl.value = segmentedImageUrl;
+          hasEdits.value = true;
+
+          // 保存一键抠图返回的ossId
+          const ossId = ossIds && ossIds.length > 0 ? ossIds[0] : undefined;
+          segmentationOssId.value = ossId;
+          isSegmentationOnly.value = true;
+
+          // 设置编辑信息，包含图片ID
+          editedImageInfo.value = {
+            url: segmentedImageUrl,
+            id: ossId
+          };
+
+          // 设置当前工具为抠图
+          currentTool.value = 'segmentation';
+
+          // 设置全局状态
+          if (ossId) {
+            shoeStore.setSegmentedImageId(ossId);
+            console.log('🌐 已设置全局抠图图片ID:', ossId);
+          }
+
+          ElMessage.success('抠图完成');
+          return true; // 成功获取到结果
+        }
+      }
+
+      // 如果还没有结果且未超过最大尝试次数，继续轮询
+      if (attempt < maxAttempts) {
+        console.log(`⏳ 第${attempt}次轮询暂无结果，${interval}ms后重试...`);
+        return false; // 继续轮询
+      } else {
+        console.error('❌ 轮询已达最大次数，停止轮询');
+        ElMessage.error('抠图超时，请重试');
+        return true; // 停止轮询
+      }
+
+    } catch (error) {
+      console.error(`❌ 第${attempt}次轮询失败:`, error);
+      
+      if (attempt < maxAttempts) {
+        console.log(`🔄 ${interval}ms后进行重试...`);
+        return false; // 继续轮询
+      } else {
+        console.error('❌ 轮询已达最大次数，停止轮询');
+        ElMessage.error('抠图查询失败，请重试');
+        return true; // 停止轮询
+      }
+    }
+  };
+
+  try {
+    // 开始轮询
+    while (attempt < maxAttempts) {
+      const shouldStop = await poll();
+      if (shouldStop) {
+        break;
+      }
+      // 等待0.5秒后继续下一次轮询
+      await new Promise(resolve => setTimeout(resolve, interval));
+    }
+  } finally {
+    loading.close();
+  }
+};
 
 // 初始化智能抠图模式
 const initSmartCutoutMode = async () => {
@@ -7231,6 +7318,28 @@ const updatePointMarkersScale = () => {
   font-size: 16px;
   color: #fff;
   opacity: 0.8;
+}
+
+.progress-sublabel {
+  font-size: 14px;
+  color: #fff;
+  opacity: 0.6;
+  margin-top: 8px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(200, 173, 127, 0.3);
+  border-top: 4px solid #c8ad7f;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* 智能抠图相关样式 */

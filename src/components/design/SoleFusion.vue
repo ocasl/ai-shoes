@@ -11,6 +11,15 @@
       </div>
     </div>
 
+    <!-- 图片加载中弹窗 -->
+    <div v-if="shoeStore.aiTaskStatus === 'loading_result'" class="loading-overlay">
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">AI处理完成，图片正在加载中...</div>
+        <div class="loading-subtitle">请稍候，马上就好</div>
+      </div>
+    </div>
+
     <div class="fusion-content">
       <div class="left-panel">
         <!-- Step 1 -->
@@ -861,10 +870,10 @@ const handleGenerate = async () => {
     if (response.code === 200 && response.data) {
       const taskId = response.data; // API直接返回taskId字符串
       console.log("获得taskId:", taskId);
-      
+
       // 启动WebSocket监听（内部会设置store状态）
       startAiTaskWs(taskId, 'sole-fusion');
-      
+
       ElMessage.success("鞋底换面任务已提交，正在处理中...");
     } else {
       console.error("API响应失败:", response);

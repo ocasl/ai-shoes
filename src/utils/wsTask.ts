@@ -124,12 +124,12 @@ export function startAiTaskWs(taskId: string, taskType?: string) {
 
         if (msg.status === 'success') {
           console.log('✅ 任务执行成功，开始查询结果...')
-          store.setAiTaskStatus('success')
+          store.setAiTaskStatus('loading_result') // 设置为加载结果状态
           store.setAiTaskProgress(100)
 
           // 根据任务类型显示不同的成功消息
           const currentTaskType = store.aiTask.taskType
-          console.log(`✅ ${getTaskTypeMessage(currentTaskType)}任务完成`)
+          console.log(`✅ ${getTaskTypeMessage(currentTaskType)}任务完成，正在加载图片...`)
 
           // 查询图片 - 使用正确的API路径
           const requestUrl = `/api/image/request?taskId=${taskId}`
@@ -162,6 +162,7 @@ export function startAiTaskWs(taskId: string, taskType?: string) {
                 const imageUrls = data.data.images || data.data.viewUrls || data.data.ossUrls || []
                 if (imageUrls && Array.isArray(imageUrls) && imageUrls.length > 0) {
                   console.log('✅ 获取到图片链接:', imageUrls)
+                  store.setAiTaskStatus('success') // 设置为最终成功状态
                   store.setAiTaskImages(imageUrls)
 
                   // 更新全局图片ID状态
@@ -176,13 +177,16 @@ export function startAiTaskWs(taskId: string, taskType?: string) {
                   }
                 } else {
                   console.error('❌ 图片查询失败，返回数据:', data)
+                  store.setAiTaskStatus('error')
                 }
               } else {
                 console.error('❌ 图片查询失败，返回数据:', data)
+                store.setAiTaskStatus('error')
               }
             })
             .catch(error => {
               console.error('❌ 图片查询请求失败:', error)
+              store.setAiTaskStatus('error')
             })
         } else if (msg.status === 'error' || msg.status === 'failed') {
           console.error('❌ 任务执行失败:', msg.status)

@@ -11,6 +11,15 @@
       </div>
     </div>
 
+    <!-- 图片加载中弹窗 -->
+    <div v-if="shoeStore.aiTaskStatus === 'loading_result'" class="loading-overlay">
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">AI处理完成，图片正在加载中...</div>
+        <div class="loading-subtitle">请稍候，马上就好</div>
+      </div>
+    </div>
+
     <div class="fusion-content">
       <div class="left-panel">
         <!-- Step 1 -->
@@ -847,17 +856,14 @@ const handleGenerate = async () => {
       prompt: "自动改款",
       isMask: 2, // 默认使用二图蒙版
     };
+    
     // 发送请求
     console.log("发送局部修改请求:", requestData);
     const response = await jbch(requestData);
     console.log("收到局部修改响应:", response);
 
     const result = response.data;
-    let viewUrls: string[] = [];
-    if (result && result.viewUrls && Array.isArray(result.viewUrls)) {
-      viewUrls = result.viewUrls;
-    }
-
+    
     // 检查API响应格式 - 新的API格式：直接返回taskId
     if (result && typeof result === 'string') {
       const taskId = result;
@@ -872,24 +878,38 @@ const handleGenerate = async () => {
       
       ElMessage.success('局部修改任务已提交，正在处理中...');
       return;
-    } else if (viewUrls.length > 0) {
-      // 没有 WebSocket 字段才直接处理结果
-      resultDialogImages.value = viewUrls;
-      resultDialogIndex.value = 0;
-      isViewingResults.value = true;
-      // 重置其他状态
-      isEditingMainImage.value = false;
-      isEditingReferenceImage.value = false;
-      editModalVisible.value = false;
-      uploadModalVisible.value = false;
-      ElMessage.success("局部修改生成成功");
     } else {
-      ElMessage.warning("生成成功但未获得图片");
+      // 旧格式或直接返回结果的情况
+      let viewUrls: string[] = [];
+      if (result && result.viewUrls && Array.isArray(result.viewUrls)) {
+        viewUrls = result.viewUrls;
+      }
+      
+      if (viewUrls.length > 0) {
+        // 没有 WebSocket 字段才直接处理结果
+        resultDialogImages.value = viewUrls;
+        resultDialogIndex.value = 0;
+        isViewingResults.value = true;
+        // 重置其他状态
+        isEditingMainImage.value = false;
+        isEditingReferenceImage.value = false;
+        editModalVisible.value = false;
+        uploadModalVisible.value = false;
+        ElMessage.success("局部修改生成成功");
+      } else {
+        ElMessage.warning("生成成功但未获得图片");
+      }
     }
   } catch (error: any) {
     console.error("局部修改失败:", error);
-    // 显示错误信息，如果是code 1013的特定处理
-    ElMessage.error("生成失败: " + (error.message || "未知错误"));
+    
+    // 处理特定错误码
+    if (error.response?.data?.code === 1013) {
+      ElMessage.error("请先选择需要更改的区域！");
+    } else {
+      ElMessage.error("生成失败: " + (error.message || "未知错误"));
+    }
+    
     isProcessingPartialModifyTask.value = false // 重置任务状态
   }
 };
@@ -1785,5 +1805,12 @@ function handleTwoChuangSelect(option: any) {
   color: #c8ad7f;
   font-size: 16px;
   font-weight: 500;
+}
+
+.loading-subtitle {
+  color: #fff;
+  font-size: 14px;
+  opacity: 0.7;
+  margin-top: 8px;
 }
 </style>

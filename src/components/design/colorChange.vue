@@ -16,6 +16,15 @@
       </div>
     </div>
 
+    <!-- 图片加载中弹窗 -->
+    <div v-if="shoeStore.aiTaskStatus === 'loading_result'" class="loading-overlay">
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">AI处理完成，图片正在加载中...</div>
+        <div class="loading-subtitle">请稍候，马上就好</div>
+      </div>
+    </div>
+
     <!-- 左侧菜单 -->
     <div class="side-menu">
       <router-link to="/dashboard" class="menu-link">首 页</router-link>
