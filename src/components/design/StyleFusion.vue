@@ -784,19 +784,17 @@ const handleGenerate = async () => {
     if (result && typeof result === 'string') {
       const taskId = result;
       console.log('获得taskId:', taskId);
-      shoeStore.setAiTaskInfo({
-        taskId: taskId,
-        taskType: 'style-fusion'
-      });
+      
+      // 确保之前的WebSocket连接已经停止
+      stopAiTaskWs();
+      
+      // 启动新的WebSocket监听
       startAiTaskWs(taskId, 'style-fusion');
-      // 不要直接 return，让 watch 监听 WebSocket 结果
-    } else if (viewUrls.length > 0) {
-      // 没有 WebSocket 字段才直接处理结果
-      generatedImages.value = viewUrls;
-      isViewingResults.value = true;
-      ElMessage.success("款式融合生成成功");
+      
+      ElMessage.success("款式融合任务已提交，正在处理中...");
+      // 必须等待WebSocket到达100%才出图，不再直接处理结果
     } else {
-      ElMessage.warning("生成成功但未获得图片");
+      ElMessage.warning("任务提交失败，未获得有效的任务ID");
     }
   } catch (error: any) {
     console.error("款式融合失败:", error);

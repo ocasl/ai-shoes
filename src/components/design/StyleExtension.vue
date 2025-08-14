@@ -719,35 +719,21 @@ const handleGenerate = async () => {
       imageUrls = result.ossUrls || result.viewUrls;
     }
 
-    // 优先处理直接结果，如果有的话
-    if (imageUrls.length > 0) {
-      console.log('直接处理结果图片:', imageUrls);
-      generatedImages.value = imageUrls;
-      resultDialogImages.value = imageUrls; // 同时设置 resultDialogImages
-      isViewingResults.value = true;
-      
-      // 如果有resultsWorkspaceRef，调用其showResults方法
-      if (resultsWorkspaceRef.value) {
-        resultsWorkspaceRef.value.showResults(imageUrls)
-      }
-      
-      ElMessage.success("款式延伸生成成功");
-      isProcessingStyleExtensionTask.value = false; // 重置任务状态
-      return; // 直接返回，不启动WebSocket
-    }
-    
     // 检查API响应格式 - 新的API格式：直接返回taskId
     if (result && typeof result === 'string') {
       const taskId = result;
       console.log('获得taskId:', taskId);
       
-      // 启动WebSocket监听（内部会设置store状态）
+      // 确保之前的WebSocket连接已经停止
+      stopAiTaskWs();
+      
+      // 启动新的WebSocket监听
       startAiTaskWs(taskId, 'style-extension');
       
       ElMessage.success('款式延伸任务已提交，正在处理中...');
-      // 让 watch 监听 WebSocket 结果
+      // 必须等待WebSocket到达100%才出图，不再直接处理结果
     } else {
-      ElMessage.warning("生成成功但未获得图片");
+      ElMessage.warning("任务提交失败，未获得有效的任务ID");
       isProcessingStyleExtensionTask.value = false; // 重置任务状态
     }
   } catch (error: any) {

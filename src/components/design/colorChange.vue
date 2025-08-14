@@ -828,31 +828,16 @@ const handleGenerate = async () => {
         const taskId = result;
         console.log('获得taskId:', taskId);
         
-        // 启动WebSocket监听（内部会设置store状态）
+        // 确保之前的WebSocket连接已经停止
+        stopAiTaskWs();
+        
+        // 启动新的WebSocket监听
         startAiTaskWs(taskId, 'color');
         
         ElMessage.success('配色任务已提交，正在处理中...');
+        // 必须等待WebSocket到达100%才出图，不再直接处理结果
       } else {
-        // 直接处理结果（兼容旧版本）
-        if (result && result.viewUrls && Array.isArray(result.viewUrls)) {
-          resultImages.value = result.viewUrls
-
-          // 显示结果
-          if (resultImages.value.length > 0) {
-            isViewingResults.value = true
-
-            // 如果有imageWorkspaceRef，调用其showResults方法
-            if (imageWorkspaceRef.value) {
-              imageWorkspaceRef.value.showResults(resultImages.value)
-            }
-
-            ElMessage.success('配色成功')
-          } else {
-            ElMessage.warning('配色成功但未获得图片')
-          }
-        } else {
-          ElMessage.warning('返回格式异常')
-        }
+        ElMessage.warning('任务提交失败，未获得有效的任务ID');
       }
     } else {
       throw new Error(response.msg || '配色失败')

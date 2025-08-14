@@ -913,22 +913,10 @@ const handleGenerate = async () => {
         viewUrls = result.viewUrls;
       }
       
-      if (viewUrls.length > 0) {
-        // 没有 WebSocket 字段才直接处理结果
-        resultDialogImages.value = viewUrls;
-        resultDialogIndex.value = 0;
-        isViewingResults.value = true;
-        // 重置其他状态
-        isEditingMainImage.value = false;
-        isEditingReferenceImage.value = false;
-        editModalVisible.value = false;
-        uploadModalVisible.value = false;
-        ElMessage.success("局部修改生成成功");
-      } else {
-        ElMessage.warning("生成成功但未获得图片");
+      ElMessage.warning("任务提交失败，未获得有效的任务ID");
       }
     }
-  } catch (error: any) {
+   catch (error: any) {
     console.error("局部修改失败:", error);
     
     // 处理特定错误码

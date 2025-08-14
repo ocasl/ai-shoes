@@ -7,6 +7,7 @@ let comfyuiRetryCount = 0
 const maxReconnectAttempts = 5
 const maxComfyuiRetryAttempts = 3
 let isQueryingResult = false // 防止重复查询结果
+let currentTaskId: string | null = null // 当前正在处理的任务ID
 
 export function startAiTaskWs(taskId: string, taskType?: string) {
   const store = useShoeStore()
@@ -30,6 +31,10 @@ export function startAiTaskWs(taskId: string, taskType?: string) {
   // 重置ComfyUI重试计数和查询标志
   comfyuiRetryCount = 0
   isQueryingResult = false
+
+  // 设置当前任务ID，确保只处理当前任务
+  currentTaskId = taskId
+  console.log('🆔 设置当前任务ID:', currentTaskId)
 
   // 设置新的任务信息
   store.setAiTaskInfo({ taskId, taskType })
@@ -113,9 +118,9 @@ export function startAiTaskWs(taskId: string, taskType?: string) {
 
           // 设置超时保护，如果15秒内没收到task_status就主动查询
           setTimeout(async () => {
-            if (store.aiTask.taskStatus === 'running') {
+            if (store.aiTask.taskStatus === 'running' && store.aiTask.taskId === currentTaskId) {
               console.log('⏰ 进度100%后15秒未收到完成状态，主动查询结果')
-              await manuallyQueryTaskResult(taskId, store)
+              await manuallyQueryTaskResult(currentTaskId, store)
             }
           }, 15000)
         }
@@ -125,7 +130,25 @@ export function startAiTaskWs(taskId: string, taskType?: string) {
         console.log('📋 收到任务状态消息:', msg.status)
 
         if (msg.status === 'success') {
-          console.log('✅ 任务执行成功，开始查询结果...')
+          // 严格验证taskId，确保只处理当前任务
+          if (taskId !== currentTaskId) {
+            console.warn('⚠️ 收到的taskId与当前任务ID不匹配，忽略此消息', {
+              收到的taskId: taskId,
+              当前任务ID: currentTaskId
+            })
+            return
+          }
+
+          // 验证store中的taskId是否匹配
+          if (store.aiTask.taskId !== currentTaskId) {
+            console.warn('⚠️ Store中的taskId与当前任务ID不匹配，忽略此消息', {
+              Store中的taskId: store.aiTask.taskId,
+              当前任务ID: currentTaskId
+            })
+            return
+          }
+
+          console.log('✅ 任务执行成功，taskId验证通过，开始查询结果...')
           
           // 防止重复查询
           if (isQueryingResult) {
@@ -141,12 +164,13 @@ export function startAiTaskWs(taskId: string, taskType?: string) {
           const currentTaskType = store.aiTask.taskType
           console.log(`✅ ${getTaskTypeMessage(currentTaskType)}任务完成，正在加载图片...`)
 
-          // 查询图片 - 使用正确的API路径
-          const requestUrl = `/api/image/request?taskId=${taskId}`
+          // 查询图片 - 使用当前任务的taskId，而不是参数中的taskId
+          const requestUrl = `/api/image/request?taskId=${currentTaskId}`
           console.log('🔍 查询图片，请求URL:', requestUrl)
           console.log('🔍 参数详情:', {
-            taskId,
-            taskType
+            当前任务ID: currentTaskId,
+            taskType,
+            验证通过: true
           })
 
           const token = localStorage.getItem('token')
@@ -240,9 +264,9 @@ export function startAiTaskWs(taskId: string, taskType?: string) {
 
             // 启动备用查询机制
             setTimeout(async () => {
-              if (store.aiTask.taskStatus === 'running') {
+              if (store.aiTask.taskStatus === 'running' && store.aiTask.taskId === currentTaskId) {
                 console.log('⏰ 10秒后主动查询任务结果')
-                await manuallyQueryTaskResult(taskId, store)
+                await manuallyQueryTaskResult(currentTaskId, store)
               }
             }, 10000)
 
@@ -269,7 +293,7 @@ export function startAiTaskWs(taskId: string, taskType?: string) {
         console.log(`✅ ${getTaskTypeMessage(currentTaskType)}任务完成`)
 
         // 查询任务结果 (旧格式也使用新API)
-        await manuallyQueryTaskResult(taskId, store)
+        await manuallyQueryTaskResult(currentTaskId, store)
       }
       else if (msg.type === 'task_executing') {
         console.log('🔄 任务执行中 (旧格式)')
@@ -278,9 +302,9 @@ export function startAiTaskWs(taskId: string, taskType?: string) {
 
         // 如果收到多次task_executing但没有task_success，尝试手动查询
         setTimeout(() => {
-          if (store.aiTask.taskStatus === 'running') {
+          if (store.aiTask.taskStatus === 'running' && store.aiTask.taskId === currentTaskId) {
             console.log('⏰ 任务执行中，尝试手动查询任务结果')
-            manuallyQueryTaskResult(taskId, store)
+            manuallyQueryTaskResult(currentTaskId, store)
           }
         }, 30000) // 30秒后尝试查询
       }
@@ -474,6 +498,10 @@ export function stopAiTaskWs() {
   // 重置重连计数和查询标志
   reconnectCount = 0
   isQueryingResult = false
+  
+  // 清空当前任务ID
+  currentTaskId = null
+  console.log('🆔 清空当前任务ID')
 
   console.log('✅ WebSocket连接已停止')
 }
