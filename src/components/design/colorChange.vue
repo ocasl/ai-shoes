@@ -427,6 +427,9 @@ const handleMainFileSelect = (event: Event) => {
 };
 
 const confirmMainPreview = () => {
+  // 主图上传时重置结果状态
+  resetResultStates();
+  
   let fileToUpload: File | null = null;
   const doUpload = (file: File) => {
     uploadFile(file, (_, imageId) => {
@@ -556,6 +559,9 @@ const handleReferenceFileSelect = (event: Event) => {
 };
 
 const confirmReferencePreview = () => {
+  // 副图上传时重置结果状态
+  resetResultStates();
+  
   let fileToUpload: File | null = null;
   const doUpload = (file: File) => {
     uploadFile(file, (_, imageId) => {
@@ -763,12 +769,33 @@ watch(() => shoeStore.aiTaskImages, (newImages) => {
   }
 }, { deep: true })
 
+// 重置结果相关状态的函数
+const resetResultStates = () => {
+  console.log('🔄 重置配色结果相关状态');
+  
+  // 重置结果显示状态
+  isViewingResults.value = false;
+  resultImages.value = [];
+  isProcessingColorChangeTask.value = false;
+  
+  // 重置store中的图片结果
+  shoeStore.setAiTaskImages([]);
+  
+  console.log('✅ 配色结果状态已重置');
+};
+
 // 处理生成按钮点击
 const handleGenerate = async () => {
   if (!mainImage.value || !mainImageName.value || !referenceImage.value || !referenceImageName.value) {
     ElMessage.warning('请先上传主图和参考配色图')
     return
   }
+
+  // 在开始生成前重置结果状态，确保不会显示之前的结果
+  resetResultStates();
+  
+  // 停止之前的WebSocket连接
+  stopAiTaskWs();
 
   isGenerating.value = true
 

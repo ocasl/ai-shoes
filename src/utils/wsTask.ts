@@ -6,6 +6,7 @@ let reconnectCount = 0
 let comfyuiRetryCount = 0
 const maxReconnectAttempts = 5
 const maxComfyuiRetryAttempts = 3
+let isQueryingResult = false // 防止重复查询结果
 
 export function startAiTaskWs(taskId: string, taskType?: string) {
   const store = useShoeStore()
@@ -26,8 +27,9 @@ export function startAiTaskWs(taskId: string, taskType?: string) {
   // 重置任务状态，确保使用新的任务信息
   store.resetAiTask()
 
-  // 重置ComfyUI重试计数
+  // 重置ComfyUI重试计数和查询标志
   comfyuiRetryCount = 0
+  isQueryingResult = false
 
   // 设置新的任务信息
   store.setAiTaskInfo({ taskId, taskType })
@@ -124,6 +126,14 @@ export function startAiTaskWs(taskId: string, taskType?: string) {
 
         if (msg.status === 'success') {
           console.log('✅ 任务执行成功，开始查询结果...')
+          
+          // 防止重复查询
+          if (isQueryingResult) {
+            console.log('⚠️ 正在查询结果中，跳过重复调用')
+            return
+          }
+          
+          isQueryingResult = true
           store.setAiTaskStatus('loading_result') // 设置为加载结果状态
           store.setAiTaskProgress(100)
 
@@ -187,6 +197,11 @@ export function startAiTaskWs(taskId: string, taskType?: string) {
             .catch(error => {
               console.error('❌ 图片查询请求失败:', error)
               store.setAiTaskStatus('error')
+            })
+            .finally(() => {
+              // 无论成功还是失败，都重置查询标志
+              isQueryingResult = false
+              console.log('🔄 重置查询结果标志')
             })
         } else if (msg.status === 'error' || msg.status === 'failed') {
           console.error('❌ 任务执行失败:', msg.status)
@@ -337,6 +352,15 @@ function getTaskTypeMessage(taskType: string): string {
 async function manuallyQueryTaskResult(taskId: string, store: any, retryCount = 0) {
   const maxRetries = 3
 
+  // 防止重复查询
+  if (isQueryingResult) {
+    console.log('⚠️ 正在查询结果中，跳过手动查询')
+    return
+  }
+
+  isQueryingResult = true
+  console.log('🔍 开始手动查询任务结果')
+
   try {
     const requestUrl = `/api/image/request?taskId=${taskId}`
     console.log('🔍 手动查询任务结果，请求URL:', requestUrl)
@@ -415,11 +439,21 @@ async function manuallyQueryTaskResult(taskId: string, store: any, retryCount = 
     // 如果还有重试机会，等待后重试
     if (retryCount < maxRetries) {
       console.log(`🔄 ${5}秒后进行第${retryCount + 2}次重试...`)
+      // 重置标志，允许重试
+      isQueryingResult = false
       setTimeout(() => {
         manuallyQueryTaskResult(taskId, store, retryCount + 1)
       }, 5000)
     } else {
       console.error('❌ 手动查询已达最大重试次数，停止重试')
+      // 重置标志
+      isQueryingResult = false
+    }
+  } finally {
+    // 如果是最后一次调用（成功或最终失败），重置标志
+    if (retryCount === 0) {
+      isQueryingResult = false
+      console.log('🔄 手动查询完成，重置查询结果标志')
     }
   }
 }
@@ -437,8 +471,9 @@ export function stopAiTaskWs() {
     reconnectTimer = null
   }
 
-  // 重置重连计数
+  // 重置重连计数和查询标志
   reconnectCount = 0
+  isQueryingResult = false
 
   console.log('✅ WebSocket连接已停止')
 }

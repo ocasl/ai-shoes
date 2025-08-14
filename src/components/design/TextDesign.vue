@@ -182,6 +182,21 @@ const handleModelLoadError = (errorMsg: string) => {
   ElMessage.error('模型加载失败: ' + errorMsg)
 }
 
+// 重置结果相关状态的函数
+const resetResultStates = () => {
+  console.log('🔄 重置文字创款结果相关状态');
+  
+  // 重置结果显示状态
+  isViewingResults.value = false;
+  generatedImages.value = [];
+  isProcessingTextDesignTask.value = false;
+  
+  // 重置store中的图片结果
+  shoeStore.setAiTaskImages([]);
+  
+  console.log('✅ 文字创款结果状态已重置');
+};
+
 // 处理生成按钮点击
 const handleGenerate = async () => {
   if (!canGenerate.value) {
@@ -194,6 +209,12 @@ const handleGenerate = async () => {
     ElMessage.warning('请先登录后再使用生成功能')
     return
   }
+  
+  // 在开始生成前重置结果状态，确保不会显示之前的结果
+  resetResultStates();
+  
+  // 停止之前的WebSocket连接
+  stopAiTaskWs();
   
   // 显示加载状态 - 只使用ElLoading服务，不再设置isGenerating状态
   const loadingInstance = ElLoading.service({

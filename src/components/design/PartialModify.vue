@@ -535,14 +535,14 @@ const handleMainFileSelect = (event: Event) => {
 
 const confirmMainPreview = () => {
   if (!selectedFileMain.value) return;
+  
+  // 主图上传时重置结果状态
+  resetResultStates();
+  
   uploadFile(selectedFileMain.value, 'input', (imageUrl, imageId) => {
     if (imageId) {
       mainImageName.value = String(imageId);
       mainImageId.value = Number(imageId);
-
-      // 重置结果状态，确保新图片不会显示之前的结果
-      isViewingResults.value = false;
-      resultDialogImages.value = [];
     }
     // 使用服务器返回的图片URL，而不是本地预览图片
     mainImage.value = imageUrl;
@@ -578,14 +578,14 @@ const handleReferenceFileSelect = (event: Event) => {
 
 const confirmReferencePreview = () => {
   if (!selectedFileReference.value) return;
+  
+  // 副图上传时重置结果状态
+  resetResultStates();
+  
   uploadFile(selectedFileReference.value, 'input', (imageUrl, imageId) => {
     console.log('🔍 副图上传完成，设置referenceImage为:', imageUrl, '图片ID:', imageId);
     if (imageId != null && imageId !== '') referenceImageId.value = Number(imageId);
     referenceImageName.value = imageId?.toString() || '';
-
-    // 重置结果状态，确保新图片不会显示之前的结果
-    isViewingResults.value = false;
-    resultDialogImages.value = [];
 
     // 使用服务器返回的图片URL，而不是本地预览图片
     referenceImage.value = imageUrl;
@@ -798,6 +798,28 @@ watch(() => shoeStore.aiTaskImages, (newImages) => {
   }
 }, { deep: true })
 
+// 重置结果相关状态的函数
+const resetResultStates = () => {
+  console.log('🔄 重置局部修改结果相关状态');
+  
+  // 重置结果显示状态
+  isViewingResults.value = false;
+  resultDialogImages.value = [];
+  resultDialogIndex.value = 0;
+  isProcessingPartialModifyTask.value = false;
+  
+  // 重置编辑状态
+  isEditingMainImage.value = false;
+  isEditingReferenceImage.value = false;
+  editModalVisible.value = false;
+  uploadModalVisible.value = false;
+  
+  // 重置store中的图片结果
+  shoeStore.setAiTaskImages([]);
+  
+  console.log('✅ 局部修改结果状态已重置');
+};
+
 // 处理生成按钮点击
 const handleGenerate = async () => {
   if (!canGenerate.value) return;
@@ -827,6 +849,12 @@ const handleGenerate = async () => {
     ElMessage.warning("请先将图片上传至服务器");
     return;
   }
+
+  // 在开始生成前重置结果状态，确保不会显示之前的结果
+  resetResultStates();
+  
+  // 停止之前的WebSocket连接
+  stopAiTaskWs();
 
   try {
     isProcessingPartialModifyTask.value = true; // 设置为局部修改任务进行中

@@ -549,6 +549,10 @@ const handleMainFileSelect = (event: Event) => {
 
 const confirmMainPreview = () => {
   if (!selectedFileMain.value) return;
+  
+  // 主图上传时重置结果状态
+  resetResultStates();
+  
   // creativeImg 模式下，上传 creativeImgFile
   uploadFile(selectedFileMain.value, 'input', (imageUrl, imageId) => {
     if (imageId) mainImageId.value = typeof imageId === 'number' ? imageId : parseInt(imageId, 10);
@@ -608,6 +612,10 @@ const handleReferenceFileSelect = (event: Event) => {
 
 const confirmReferencePreview = () => {
   if (!selectedFileReference.value) return;
+  
+  // 副图上传时重置结果状态
+  resetResultStates();
+  
   // 上传前log
   console.log('[StyleFusion] 新图片赋值 referenceImage.value =', previewImageReference.value)
   uploadFile(selectedFileReference.value, 'input', (imageUrl, imageId) => {
@@ -688,6 +696,21 @@ watch(() => shoeStore.aiTaskImages, (newImages) => {
   }
 }, { deep: true })
 
+// 重置结果相关状态的函数
+const resetResultStates = () => {
+  console.log('🔄 重置款式融合结果相关状态');
+  
+  // 重置结果显示状态
+  isViewingResults.value = false;
+  generatedImages.value = [];
+  isProcessingStyleFusionTask.value = false;
+  
+  // 重置store中的图片结果
+  shoeStore.setAiTaskImages([]);
+  
+  console.log('✅ 款式融合结果状态已重置');
+};
+
 // 处理生成按钮点击
 const handleGenerate = async () => {
   if (!canGenerate.value) return;
@@ -717,6 +740,12 @@ const handleGenerate = async () => {
     ElMessage.warning("请先将图片上传至服务器");
     return;
   }
+
+  // 在开始生成前重置结果状态，确保不会显示之前的结果
+  resetResultStates();
+  
+  // 停止之前的WebSocket连接
+  stopAiTaskWs();
 
   try {
     isProcessingStyleFusionTask.value = true; // 设置为款式融合任务进行中

@@ -533,6 +533,10 @@ const handleMainFileSelect = (event: Event) => {
 
 const confirmMainPreview = () => {
   if (!selectedFileMain.value) return;
+
+  // 完全重置所有相关状态
+  resetAllStates();
+
   uploadFile(selectedFileMain.value, 'input', (imageUrl, imageId) => {
     if (imageId) {
       mainImageName.value = String(imageId);
@@ -576,6 +580,10 @@ const handleReferenceFileSelect = (event: Event) => {
 
 const confirmReferencePreview = () => {
   if (!selectedFileReference.value) return;
+
+  // 重置结果相关状态
+  resetResultStates();
+
   uploadFile(selectedFileReference.value, 'input', (imageUrl, imageId) => {
     console.log('🔍 副图上传完成，设置referenceImage为:', imageUrl, '图片ID:', imageId);
     if (imageId != null && imageId !== '') referenceImageId.value = Number(imageId);
@@ -739,6 +747,10 @@ const handleMainImageEdited = (editedImageUrl: string, imageId?: number | string
     当前mainImage: mainImage.value,
     当前mainImageName: mainImageName.value
   });
+
+  // 图片编辑后重置结果状态，因为图片已经改变
+  resetResultStates();
+
   mainImage.value = editedImageUrl;
   if (imageId !== undefined && imageId !== null && imageId !== '') {
     mainImageId.value = Number(imageId);
@@ -758,6 +770,10 @@ const handleReferenceImageEdited = (editedImageUrl: string, imageId?: number | s
     当前referenceImage: referenceImage.value,
     当前referenceImageName: referenceImageName.value
   });
+
+  // 图片编辑后重置结果状态，因为图片已经改变
+  resetResultStates();
+
   referenceImage.value = editedImageUrl;
   if (imageId !== undefined && imageId !== null && imageId !== '') {
     referenceImageId.value = Number(imageId);
@@ -804,6 +820,47 @@ watch(() => shoeStore.aiTaskStatus, (newStatus) => {
   }
 }, { immediate: true })
 
+// 完全重置所有状态的函数
+const resetAllStates = () => {
+  console.log('🔄 完全重置所有状态');
+
+  // 停止之前的WebSocket连接
+  stopAiTaskWs();
+
+  // 重置store中的AI任务状态
+  shoeStore.resetAiTask();
+
+  // 重置结果相关状态
+  isViewingResults.value = false;
+  resultDialogImages.value = [];
+  resultDialogIndex.value = 0;
+  isProcessingPartialModifyTask.value = false;
+
+  // 重置编辑状态
+  isEditingMainImage.value = false;
+  isEditingReferenceImage.value = false;
+  editModalVisible.value = false;
+  uploadModalVisible.value = false;
+
+  console.log('✅ 所有状态已重置');
+};
+
+// 重置结果相关状态的函数
+const resetResultStates = () => {
+  console.log('🔄 重置结果相关状态');
+
+  // 重置结果显示状态
+  isViewingResults.value = false;
+  resultDialogImages.value = [];
+  resultDialogIndex.value = 0;
+  isProcessingPartialModifyTask.value = false;
+
+  // 重置store中的图片结果
+  shoeStore.setAiTaskImages([]);
+
+  console.log('✅ 结果状态已重置');
+};
+
 // 处理生成按钮点击
 const handleGenerate = async () => {
   if (!canGenerate.value) return;
@@ -835,6 +892,9 @@ const handleGenerate = async () => {
   }
 
   try {
+    // 在开始生成前重置结果状态，确保不会显示之前的结果
+    resetResultStates();
+
     isProcessingPartialModifyTask.value = true; // 设置为局部修改任务进行中
 
     // 使用当前上传的图片ID，避免使用全局状态中的旧ID
@@ -871,7 +931,10 @@ const handleGenerate = async () => {
       const taskId = response.data; // API直接返回taskId字符串
       console.log("获得taskId:", taskId);
 
-      // 启动WebSocket监听（内部会设置store状态）
+      // 确保之前的WebSocket连接已经停止
+      stopAiTaskWs();
+
+      // 启动新的WebSocket监听（内部会设置store状态）
       startAiTaskWs(taskId, 'sole-fusion');
 
       ElMessage.success("鞋底换面任务已提交，正在处理中...");

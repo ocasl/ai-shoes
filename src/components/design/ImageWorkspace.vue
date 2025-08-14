@@ -3610,8 +3610,7 @@ const setupSmartCutoutCanvas = () => {
 
 
 
-// 处理智能抠图点击 - 简化版（CSS缩放方案）
-const handleSmartCutoutClick = async (event: MouseEvent) => {
+const handleSmartCutoutClick = async (event) => {
   if (!isSmartCutoutMode.value) return
 
   const canvas = smartCutoutCanvasRef.value
@@ -3622,7 +3621,7 @@ const handleSmartCutoutClick = async (event: MouseEvent) => {
     return
   }
 
-  // 防抖处理，避免快速连续点击
+  // 防抖处理
   if (isProcessingClick.value) {
     console.log('⏳ 正在处理上一个点击，跳过')
     return
@@ -3633,7 +3632,10 @@ const handleSmartCutoutClick = async (event: MouseEvent) => {
   const displayX = event.clientX - canvasRect.left
   const displayY = event.clientY - canvasRect.top
 
-  // 除以CSS缩放获得原始像素坐标
+  // 🔥 立即创建点击效果 - 在这里添加
+  createClickEffect(displayX, displayY, 'foreground')
+
+  // 转换坐标
   const originalX = Math.round(displayX / smartCutoutZoom.value)
   const originalY = Math.round(displayY / smartCutoutZoom.value)
 
@@ -3643,16 +3645,18 @@ const handleSmartCutoutClick = async (event: MouseEvent) => {
   } catch (error) {
     console.error('❌ [智能抠图] 添加正点请求失败:', error)
   } finally {
-    // 延迟重置，避免过快的连续点击
     setTimeout(() => {
       isProcessingClick.value = false
     }, 300)
   }
 }
 
+
+
 // 处理智能抠图右键点击 - 简化版
 const handleSmartCutoutRightClick = async (event: MouseEvent) => {
   event.preventDefault()
+  
   if (!isSmartCutoutMode.value) return
 
   const canvas = smartCutoutCanvasRef.value
@@ -3664,6 +3668,9 @@ const handleSmartCutoutRightClick = async (event: MouseEvent) => {
   const displayX = event.clientX - canvasRect.left
   const displayY = event.clientY - canvasRect.top
 
+  // 🔥 立即创建右键点击效果 - 关键添加
+  createClickEffect(displayX, displayY, 'background')
+
   // 简单的坐标转换
   const originalX = Math.round(displayX / smartCutoutZoom.value)
   const originalY = Math.round(displayY / smartCutoutZoom.value)
@@ -3671,6 +3678,100 @@ const handleSmartCutoutRightClick = async (event: MouseEvent) => {
   // 使用原始坐标调用SAM API（背景点）
   await addSmartCutoutPoint(originalX, originalY, 'background')
 }
+
+// 创建点击效果 - 从左到右的动态高亮扫光效果
+const createClickEffect = (x, y, type = 'foreground') => {
+  const container = smartCutoutContainerRef.value
+  if (!container) return
+
+  // 创建点击效果容器
+  const clickEffect = document.createElement('div')
+  clickEffect.className = `click-effect ${type}`
+  
+  // 设置位置（相对于容器）
+  clickEffect.style.cssText = `
+    position: absolute !important;
+    left: ${x}px !important;
+    top: ${y}px !important;
+    width: 60px !important;
+    height: 60px !important;
+    pointer-events: none !important;
+    z-index: 1000 !important;
+    transform: translate(-50%, -50%) !important;
+  `
+
+  // 创建扫光效果元素
+  const sweepEffect = document.createElement('div')
+  sweepEffect.className = `sweep-effect ${type}`
+  sweepEffect.style.cssText = `
+    position: absolute !important;
+    top: -15px !important;
+    left: -30px !important;
+    right: -30px !important;
+    bottom: -15px !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    animation: sweepAnimation 0.8s ease-out forwards !important;
+  `
+
+  // 创建涟漪效果元素
+  const rippleEffect = document.createElement('div')
+  rippleEffect.className = `ripple-effect ${type}`
+  rippleEffect.style.cssText = `
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: 20px !important;
+    height: 20px !important;
+    border-radius: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    opacity: 0 !important;
+    animation: rippleAnimation 0.6s ease-out forwards !important;
+  `
+
+  // 根据类型设置颜色
+  if (type === 'foreground') {
+    sweepEffect.style.background = `linear-gradient(90deg,
+      transparent 0%,
+      rgba(16, 185, 129, 0.3) 20%,
+      rgba(16, 185, 129, 0.8) 50%,
+      rgba(16, 185, 129, 0.3) 80%,
+      transparent 100%
+    )`
+    sweepEffect.style.boxShadow = '0 0 20px rgba(16, 185, 129, 0.6)'
+    
+    rippleEffect.style.background = 'rgba(16, 185, 129, 0.4)'
+    rippleEffect.style.border = '2px solid rgba(16, 185, 129, 0.8)'
+  } else {
+    sweepEffect.style.background = `linear-gradient(90deg,
+      transparent 0%,
+      rgba(239, 68, 68, 0.3) 20%,
+      rgba(239, 68, 68, 0.8) 50%,
+      rgba(239, 68, 68, 0.3) 80%,
+      transparent 100%
+    )`
+    sweepEffect.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.6)'
+    
+    rippleEffect.style.background = 'rgba(239, 68, 68, 0.4)'
+    rippleEffect.style.border = '2px solid rgba(239, 68, 68, 0.8)'
+  }
+
+  // 组装效果
+  clickEffect.appendChild(sweepEffect)
+  clickEffect.appendChild(rippleEffect)
+  
+  // 添加到容器
+  container.appendChild(clickEffect)
+
+  // 动画完成后移除元素
+  setTimeout(() => {
+    if (container.contains(clickEffect)) {
+      container.removeChild(clickEffect)
+    }
+  }, 1000)
+}
+
 
 
 
@@ -8554,5 +8655,106 @@ const updatePointMarkersScale = () => {
   left: 0;
   cursor: crosshair;
   transition: transform 0.3s ease;
+}
+/* 扫光动画 - 关键：从左到右的位移效果 */
+@keyframes sweepAnimation {
+  0% {
+    opacity: 0;
+    transform: translateX(-100%) scale(0.8);
+  }
+  20% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translateX(50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%) scale(1.2);
+  }
+}
+
+/* 涟漪动画 */
+@keyframes rippleAnimation {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2);
+  }
+}
+
+/* 点击效果样式 */
+.click-effect {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  pointer-events: none;
+  z-index: 1000;
+  transform: translate(-50%, -50%);
+}
+
+/* 扫光效果 - 从左到右的横向渐变动画 */
+.sweep-effect {
+  position: absolute;
+  top: -15px;
+  left: -30px;
+  right: -30px;
+  bottom: -15px;
+  border-radius: 50%;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.sweep-effect.foreground {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(16, 185, 129, 0.3) 20%,
+    rgba(16, 185, 129, 0.8) 50%,
+    rgba(16, 185, 129, 0.3) 80%,
+    transparent 100%
+  );
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+}
+
+.sweep-effect.background {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(239, 68, 68, 0.3) 20%,
+    rgba(239, 68, 68, 0.8) 50%,
+    rgba(239, 68, 68, 0.3) 80%,
+    transparent 100%
+  );
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+}
+
+/* 涟漪效果 */
+.ripple-effect {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+}
+
+.ripple-effect.foreground {
+  background: rgba(16, 185, 129, 0.4);
+  border: 2px solid rgba(16, 185, 129, 0.8);
+}
+
+.ripple-effect.background {
+  background: rgba(239, 68, 68, 0.4);
+  border: 2px solid rgba(239, 68, 68, 0.8);
 }
 </style>
