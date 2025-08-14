@@ -358,6 +358,29 @@
                     @contextmenu="handleSmartCutoutRightClick" @mousemove="handleSmartCutoutHover"
                     @mouseleave="clearHoverPreview"></canvas>
 
+                  <!-- 智能抠图调试信息 -->
+                  <div
+                    style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; z-index: 1000; font-size: 12px; border-radius: 4px;">
+                    <div>当前工具: {{ currentTool }}</div>
+                    <div>智能抠图模式: {{ isSmartCutoutMode }}</div>
+                    <div>SAM已加载: {{ isImageLoadedToSAM }}</div>
+                    <div>TaskID: {{ samTaskId || '无' }}</div>
+                    <div>Canvas存在: {{ !!smartCutoutCanvasRef }}</div>
+                    <div>图片存在: {{ !!smartCutoutImageRef }}</div>
+                    <div v-if="smartCutoutCanvasRef">Canvas尺寸: {{ smartCutoutCanvasRef.width }}x{{
+                      smartCutoutCanvasRef.height }}</div>
+                    <div v-if="smartCutoutImageRef">图片原始尺寸: {{ smartCutoutImageRef.naturalWidth }}x{{
+                      smartCutoutImageRef.naturalHeight }}</div>
+                    <div v-if="smartCutoutImageRef">图片显示尺寸: {{ smartCutoutImageRef.offsetWidth }}x{{
+                      smartCutoutImageRef.offsetHeight }}</div>
+                    <div>CSS缩放: {{ Math.round(smartCutoutZoom * 100) }}%</div>
+                    <div>点击点数量: {{ smartCutoutPoints.length }}</div>
+                    <div>前景点: {{smartCutoutPoints.filter(p => p.type === 'foreground').length}}</div>
+                    <div>背景点: {{smartCutoutPoints.filter(p => p.type === 'background').length}}</div>
+                    <div>有蒙版: {{ !!smartCutoutMask }}</div>
+                    <div>悬浮预览: {{ isHovering }}</div>
+                  </div>
+
                   <!-- 悬浮预览层 -->
                   <canvas v-if="isHovering && hoverPreviewMask" class="hover-preview-canvas"
                     ref="hoverPreviewCanvasRef"></canvas>
@@ -564,6 +587,7 @@ const isSegmentationOnly = ref(false)
 // 智能抠图相关状态
 const isSmartCutoutMode = ref(false)
 const isImageLoadedToSAM = ref(false)
+const isProcessingClick = ref(false)  // 防抖处理，避免快速连续点击
 const smartCutoutPoints = ref<Array<{ x: number, y: number, type: 'foreground' | 'background' }>>([])
 const smartCutoutMask = ref('')
 const smartCutoutImageRef = ref<HTMLImageElement | null>(null)
@@ -1907,43 +1931,34 @@ const adjustCanvasPosition = () => {
 
   if (!image || !canvas || !container) return
 
-  console.log('🔧 开始Canvas定位')
+  const imageRect = image.getBoundingClientRect()
+  const containerRect = container.getBoundingClientRect()
+  const smartZoom = smartCutoutZoom.value
 
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      const imageRect = image.getBoundingClientRect()
-      const containerRect = container.getBoundingClientRect()
+  const samScaledWidth = Math.round(image.naturalWidth * smartZoom)
+  const samScaledHeight = Math.round(image.naturalHeight * smartZoom)
 
-      // Canvas显示位置与图片完全一致
-      const exactLeft = imageRect.left - containerRect.left
-      const exactTop = imageRect.top - containerRect.top
-
-      // 关键修改：Canvas逻辑尺寸设置为SAM缩放后的尺寸
-      const smartZoom = smartCutoutZoom.value
-      const samScaledWidth = Math.round(image.naturalWidth * smartZoom)
-      const samScaledHeight = Math.round(image.naturalHeight * smartZoom)
-
-      console.log('🔧 Canvas尺寸设置:', {
-        原始尺寸: { width: image.naturalWidth, height: image.naturalHeight },
-        智能缩放: smartZoom,
-        SAM缩放后尺寸: { width: samScaledWidth, height: samScaledHeight },
-        显示尺寸: { width: imageRect.width, height: imageRect.height }
-      })
-
-      // 设置Canvas逻辑尺寸为SAM缩放后的尺寸（与蒙版尺寸一致）
-      canvas.width = samScaledWidth
-      canvas.height = samScaledHeight
-
-      // 设置Canvas显示尺寸与图片显示尺寸一致
-      canvas.style.position = 'absolute'
-      canvas.style.top = `${exactTop}px`
-      canvas.style.left = `${exactLeft}px`
-      canvas.style.width = `${imageRect.width}px`
-      canvas.style.height = `${imageRect.height}px`
-      canvas.style.pointerEvents = 'auto'
-      canvas.style.zIndex = '10'
-    })
+  console.log('🔧 调整Canvas位置和尺寸:', {
+    imageNaturalSize: { width: image.naturalWidth, height: image.naturalHeight },
+    smartZoom,
+    samScaledSize: { width: samScaledWidth, height: samScaledHeight },
+    imageDisplaySize: { width: imageRect.width, height: imageRect.height },
+    containerRect,
   })
+
+  canvas.width = samScaledWidth
+  canvas.height = samScaledHeight
+
+  const exactLeft = imageRect.left - containerRect.left
+  const exactTop = imageRect.top - containerRect.top
+
+  canvas.style.position = 'absolute'
+  canvas.style.top = exactTop + 'px'
+  canvas.style.left = exactLeft + 'px'
+  canvas.style.width = imageRect.width + 'px'
+  canvas.style.height = imageRect.height + 'px'
+  canvas.style.pointerEvents = 'auto'
+  canvas.style.zIndex = '10'
 }
 
 
@@ -3095,7 +3110,7 @@ const handleSegmentation = async () => {
     // 从当前图片URL中提取图片名称或获取图片ID的逻辑保持不变...
     let imageName = ''
     let imageId: number | null = null
-    
+
     // 优先检查是否有编辑后的图片信息
     if (hasEdits.value && editedImageInfo.value && editedImageInfo.value.id) {
       imageId = editedImageInfo.value.id
@@ -3366,7 +3381,7 @@ const pollImageResult = async (taskId: string) => {
 
     } catch (error) {
       console.error(`❌ 第${attempt}次轮询失败:`, error);
-      
+
       if (attempt < maxAttempts) {
         console.log(`🔄 ${interval}ms后进行重试...`);
         return false; // 继续轮询
@@ -3583,6 +3598,10 @@ const setupSmartCutoutCanvas = () => {
   const canvas = document.querySelector('.image-display img') as HTMLImageElement
   if (!canvas) return
 
+  // 先移除可能存在的旧事件监听器，避免重复绑定
+  canvas.removeEventListener('click', handleSmartCutoutClick)
+  canvas.removeEventListener('contextmenu', handleSmartCutoutRightClick)
+
   // 添加点击事件监听
   canvas.addEventListener('click', handleSmartCutoutClick)
   canvas.addEventListener('contextmenu', handleSmartCutoutRightClick)
@@ -3598,25 +3617,37 @@ const handleSmartCutoutClick = async (event: MouseEvent) => {
   const canvas = smartCutoutCanvasRef.value
   const image = smartCutoutImageRef.value
 
-  if (!canvas || !image) return
+  if (!canvas || !image) {
+    console.warn('🛑 Canvas或图片元素未找到')
+    return
+  }
 
-  // 获取点击坐标（相对于Canvas显示区域）
+  // 防抖处理，避免快速连续点击
+  if (isProcessingClick.value) {
+    console.log('⏳ 正在处理上一个点击，跳过')
+    return
+  }
+  isProcessingClick.value = true
+
   const canvasRect = canvas.getBoundingClientRect()
   const displayX = event.clientX - canvasRect.left
   const displayY = event.clientY - canvasRect.top
 
-  // 简单的坐标转换：除以CSS缩放比例得到原始坐标
+  // 除以CSS缩放获得原始像素坐标
   const originalX = Math.round(displayX / smartCutoutZoom.value)
   const originalY = Math.round(displayY / smartCutoutZoom.value)
 
-  console.log('🎯 [点击事件] 坐标转换:', {
-    显示坐标: { displayX, displayY },
-    CSS缩放: smartCutoutZoom.value,
-    原始坐标: { originalX, originalY }
-  })
-
-  // 直接使用原始坐标调用SAM
-  await addSmartCutoutPoint(originalX, originalY, 'foreground')
+  try {
+    await addSmartCutoutPoint(originalX, originalY, 'foreground')
+    console.log('✅ [智能抠图] 添加正点请求成功')
+  } catch (error) {
+    console.error('❌ [智能抠图] 添加正点请求失败:', error)
+  } finally {
+    // 延迟重置，避免过快的连续点击
+    setTimeout(() => {
+      isProcessingClick.value = false
+    }, 300)
+  }
 }
 
 // 处理智能抠图右键点击 - 简化版
@@ -3655,15 +3686,15 @@ const addSmartCutoutPoint = async (x: number, y: number, type: 'foreground' | 'b
   })
 
   try {
-    // 确保有taskId
+    // 确保taskId存在
     if (!samTaskId.value && isImageLoadedToSAM.value) {
-      console.warn('图像已加载但taskId丢失，重新加载图像')
+      console.warn('图像已加载但任务ID丢失，准备重新加载图像')
       isImageLoadedToSAM.value = false
     }
 
-    // 如果图像还没有加载到SAM，先加载图像
+    // 如果图像还未加载到SAM，先加载图像
     if (!isImageLoadedToSAM.value) {
-      console.log('🎯 [智能抠图] 首次点击，需要先加载图像到SAM')
+      console.log('🎯 [智能抠图] 首次点击，先加载图像到SAM')
 
       const image = smartCutoutImageRef.value
       if (!image) {
@@ -3676,7 +3707,7 @@ const addSmartCutoutPoint = async (x: number, y: number, type: 'foreground' | 'b
         throw new Error('无法创建Canvas上下文')
       }
 
-      // 直接使用原始尺寸，不做智能缩放
+      // 直接使用原始尺寸，不做缩放
       canvas.width = image.naturalWidth
       canvas.height = image.naturalHeight
       ctx.drawImage(image, 0, 0)
@@ -3688,18 +3719,18 @@ const addSmartCutoutPoint = async (x: number, y: number, type: 'foreground' | 'b
       isImageLoadedToSAM.value = true
     }
 
-    // 确保有taskId
+    // 确认taskId
     if (!samTaskId.value) {
       throw new Error('任务ID未初始化，请先加载图像')
     }
 
-    // 添加点到列表
+    // 将点加入点列表
     smartCutoutPoints.value.push({ x, y, type })
 
     // 清除悬浮预览
     clearHoverPreview()
 
-    // 调用SAM分割API - 添加taskId参数
+    // 调用SAM分割API，带上taskId
     const apiUrl = `${SAM_API_BASE}/segment`
     const requestData = {
       x: x,
@@ -3715,6 +3746,7 @@ const addSmartCutoutPoint = async (x: number, y: number, type: 'foreground' | 'b
 
     let response
     try {
+      // 标记 
       response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -3758,21 +3790,20 @@ const addSmartCutoutPoint = async (x: number, y: number, type: 'foreground' | 'b
     if (result.success) {
       console.log('🎯 [智能抠图] SAM分割成功，开始处理结果')
 
-      // 更新蒙版
+      // 更新蒙版base64
       smartCutoutMask.value = 'data:image/png;base64,' + result.mask
 
       // 等待DOM更新
       await nextTick()
 
-      // 立即更新标记缩放（关键修复）
+      // 立即更新标记点缩放（关键）
       updatePointMarkersScale()
 
       // 绘制带高亮边缘的抠图结果
       await drawSmartCutoutResultWithHighlight()
 
-      const pointType = type === 'foreground' ? '正点' : '负点'
     } else {
-      // 处理错误情况
+      // 处理错误情况，尝试自动校正图像状态
       const errorMessage = result.error || result.message || ''
       if (errorMessage.includes('An image must be set') || errorMessage.includes('set_image')) {
         console.log('🎯 [智能抠图] 检测到图像未设置错误，尝试重新加载图像并重试...')
@@ -3781,7 +3812,7 @@ const addSmartCutoutPoint = async (x: number, y: number, type: 'foreground' | 'b
           const base64Data = await imageToBase64(editingImageUrl.value)
           await loadImageToSAM(base64Data)
 
-          // 重新添加所有之前的点
+          // 重新添加之前所有点（除了刚添加的）
           for (let i = 0; i < smartCutoutPoints.value.length - 1; i++) {
             const prevPoint = smartCutoutPoints.value[i]
             await fetch(apiUrl, {
@@ -3798,7 +3829,7 @@ const addSmartCutoutPoint = async (x: number, y: number, type: 'foreground' | 'b
             })
           }
 
-          // 重试当前点的分割请求
+          // 重试当前点分割请求
           const retryResponse = await fetch(apiUrl, {
             method: 'POST',
             headers: {
@@ -3812,10 +3843,8 @@ const addSmartCutoutPoint = async (x: number, y: number, type: 'foreground' | 'b
             if (retryResult.success) {
               smartCutoutMask.value = 'data:image/png;base64,' + retryResult.mask
               await nextTick()
-              updatePointMarkersScale() // 重试成功后也要更新缩放
+              updatePointMarkersScale()
               await drawSmartCutoutResultWithHighlight()
-
-              const pointType = type === 'foreground' ? '正点' : '负点'
               return
             }
           }
@@ -3824,7 +3853,7 @@ const addSmartCutoutPoint = async (x: number, y: number, type: 'foreground' | 'b
         }
       }
 
-      // 如果分割失败，移除刚添加的点
+      // 如果分割失败，移除刚加的点，避免状态不一致
       smartCutoutPoints.value.pop()
 
       throw new Error(result.error || result.message || 'SAM分割失败')
@@ -3837,6 +3866,7 @@ const addSmartCutoutPoint = async (x: number, y: number, type: 'foreground' | 'b
     ElMessage.error('智能抠图分割失败: ' + error.message)
   }
 }
+
 
 
 
@@ -4312,6 +4342,13 @@ const downloadCurrentImage = () => {
 // 监听props变化
 watch(() => props.isViewResults, (newValue) => {
   isViewingResults.value = newValue
+})
+
+watch(smartCutoutZoom, (newVal) => {
+  console.log('🔍 缩放值变化: ', newVal)
+  requestAnimationFrame(() => {
+    updatePointMarkersScale()
+  })
 })
 
 watch(() => props.resultImages, (newValue) => {
@@ -6495,10 +6532,7 @@ const updatePointMarkersScale = () => {
   contain: layout style paint !important;
 }
 
-/* 最强制的溢出修复 - 针对智能抠图 */
-.tool-modal:has(.smart-cutout-modal-layout) {
-  overflow: hidden !important;
-}
+
 
 .tool-modal:has(.smart-cutout-modal-layout) :deep(.el-dialog) {
   overflow: hidden !important;
@@ -6506,7 +6540,7 @@ const updatePointMarkersScale = () => {
   contain: layout style paint !important;
   border-radius: 12px !important;
   max-width: 90vw !important;
-  max-height: 90vh !important;
+  max-height: 200vh !important;
 }
 
 .tool-modal:has(.smart-cutout-modal-layout) :deep(.el-dialog__body) {
@@ -6514,7 +6548,7 @@ const updatePointMarkersScale = () => {
   clip-path: inset(0) !important;
   contain: layout style paint !important;
   border-radius: 0 0 12px 12px !important;
-  max-height: calc(90vh - 60px) !important;
+  max-height: calc(200vh - 60px) !important;
 }
 
 .tool-modal:has(.smart-cutout-modal-layout) .tool-modal-content {
@@ -6577,7 +6611,7 @@ const updatePointMarkersScale = () => {
 /* 确保图片绝对不会超出容器 */
 .smart-cutout-modal-layout .smart-cutout-image {
   max-width: calc(100% - 40px) !important;
-  max-height: calc(100% - 160px) !important;
+  max-height: calc(100% - 40px) !important;
   width: auto !important;
   height: auto !important;
   object-fit: contain !important;
@@ -7338,8 +7372,13 @@ const updatePointMarkersScale = () => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* 智能抠图相关样式 */
@@ -7631,8 +7670,8 @@ const updatePointMarkersScale = () => {
 .smart-cutout-modal-layout {
   position: relative;
   width: 100%;
-  height: 80vh;
-  /* 使用视口高度的80%，确保图片完整显示 */
+  height: 100%;
+  /* 使用100%高度，与局部涂抹保持一致 */
   display: flex;
   flex-direction: column;
   background: #f5f7fa;
@@ -7671,8 +7710,11 @@ const updatePointMarkersScale = () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  /* 减少padding，给图片更多空间 */
+  padding: 20px;
+  /* 给图片足够的显示空间，与局部涂抹保持一致 */
   overflow: hidden;
+  min-height: 0;
+  /* 确保flex子项能够正确收缩 */
 }
 
 .smart-cutout-image-container {
@@ -7764,10 +7806,10 @@ const updatePointMarkersScale = () => {
 
 .smart-cutout-modal-layout .smart-cutout-image {
   display: block;
-  max-width: none;
-  /* 移除最大宽度限制，让图片保持原始比例 */
-  max-height: none;
-  /* 移除最大高度限制，让图片保持原始比例 */
+  max-width: 100%;
+  /* 恢复最大宽度限制，确保图片完整显示在容器内 */
+  max-height: 100%;
+  /* 恢复最大高度限制，确保图片完整显示在容器内 */
   width: auto;
   height: auto;
   object-fit: contain;
@@ -7893,10 +7935,11 @@ const updatePointMarkersScale = () => {
   align-items: center;
   justify-content: center;
   position: relative;
-  padding: 80px 20px 80px;
+  padding: 20px;
+  /* 减少padding，给图片更多空间，与局部涂抹保持一致 */
   overflow: hidden;
-  min-height: 400px;
-  /* 确保有足够的高度 */
+  min-height: 0;
+  /* 让flex子项能够正确收缩 */
 }
 
 .smart-cutout-modal-layout .smart-cutout-image {
@@ -8033,13 +8076,13 @@ const updatePointMarkersScale = () => {
 }
 
 /* 工具弹窗内容区域调整 - 智能抠图时隐藏右侧面板 */
-.tool-modal-content:has(.smart-cutout-new-layout) {
+.tool-modal-content:has(.smart-cutout-modal-layout) {
   display: block;
-  height: 70vh;
+  height: 100%;
   position: relative;
 }
 
-.tool-modal-content:has(.smart-cutout-new-layout) .tool-modal-workspace {
+.tool-modal-content:has(.smart-cutout-modal-layout) .tool-modal-workspace {
   width: 100%;
   height: 100%;
   display: flex;
@@ -8051,7 +8094,7 @@ const updatePointMarkersScale = () => {
   position: relative;
 }
 
-.tool-modal-content:has(.smart-cutout-new-layout) .tool-modal-options {
+.tool-modal-content:has(.smart-cutout-modal-layout) .tool-modal-options {
   display: none;
   /* 隐藏右侧选项面板 */
 }
@@ -8495,7 +8538,7 @@ const updatePointMarkersScale = () => {
 .smart-cutout-image-container {
   position: relative;
   display: inline-block;
-  overflow: auto;
+  overflow: hidden
 }
 
 .smart-cutout-image {
