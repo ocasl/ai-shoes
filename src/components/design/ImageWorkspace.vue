@@ -1583,9 +1583,10 @@ const handleSmartCutoutHover = async (event: MouseEvent) => {
   const image = smartCutoutImageRef.value
   if (!canvas || !image) return
 
+  // 🔥 使用与点击事件相同的简洁坐标处理方式
   const rect = canvas.getBoundingClientRect()
-  const displayX = Math.round(event.clientX - rect.left)
-  const displayY = Math.round(event.clientY - rect.top)
+  const hoverX = Math.round(event.clientX - rect.left)
+  const hoverY = Math.round(event.clientY - rect.top)
 
   // 防抖处理
   if (hoverTimeout.value) {
@@ -1596,14 +1597,15 @@ const handleSmartCutoutHover = async (event: MouseEvent) => {
     try {
       if (smartCutoutPoints.value.length > 0) return
 
-      // 修正坐标转换：使用与点击事件相同的转换逻辑
-      const originalX = Math.round(displayX / smartCutoutZoom.value)
-      const originalY = Math.round(displayY / smartCutoutZoom.value)
+      // 🔥 直接使用计算后的坐标，与点击事件保持一致
+      const originalX = hoverX
+      const originalY = hoverY
 
       console.log('🎯 [悬浮预览] 坐标映射', {
-        显示坐标: { displayX, displayY },
-        CSS缩放: smartCutoutZoom.value,
-        原始坐标: { originalX, originalY }
+        原始事件坐标: { clientX: event.clientX, clientY: event.clientY },
+        Canvas边界: rect,
+        计算后坐标: { hoverX, hoverY },
+        最终使用坐标: { originalX, originalY }
       })
 
       // 确保有taskId
@@ -3628,16 +3630,29 @@ const handleSmartCutoutClick = async (event) => {
   }
   isProcessingClick.value = true
 
-  const canvasRect = canvas.getBoundingClientRect()
-  const displayX = event.clientX - canvasRect.left
-  const displayY = event.clientY - canvasRect.top
+  // 🔥 借鉴HTML文件的简洁坐标处理方式
+  const rect = canvas.getBoundingClientRect()
+  const clickX = Math.round(event.clientX - rect.left)
+  const clickY = Math.round(event.clientY - rect.top)
 
-  // 🔥 立即创建点击效果 - 在这里添加
-  createClickEffect(displayX, displayY, 'foreground')
+  console.log('🎯 [智能抠图] 点击坐标处理', {
+    原始事件坐标: { clientX: event.clientX, clientY: event.clientY },
+    Canvas边界: rect,
+    计算后坐标: { clickX, clickY },
+    Canvas尺寸: { width: canvas.width, height: canvas.height }
+  })
 
-  // 转换坐标
-  const originalX = Math.round(displayX / smartCutoutZoom.value)
-  const originalY = Math.round(displayY / smartCutoutZoom.value)
+  // 🔥 立即创建点击效果 - 使用计算后的坐标
+  createClickEffect(clickX, clickY, 'foreground')
+
+  // 🔥 直接使用计算后的坐标，不再进行复杂的缩放转换
+  // 因为Canvas的坐标系应该与显示坐标系保持一致
+  const originalX = clickX
+  const originalY = clickY
+
+  console.log('🎯 [智能抠图] 最终使用坐标', {
+    发送给SAM的坐标: { originalX, originalY }
+  })
 
   try {
     await addSmartCutoutPoint(originalX, originalY, 'foreground')
@@ -3656,24 +3671,35 @@ const handleSmartCutoutClick = async (event) => {
 // 处理智能抠图右键点击 - 简化版
 const handleSmartCutoutRightClick = async (event: MouseEvent) => {
   event.preventDefault()
-  
+
   if (!isSmartCutoutMode.value) return
 
   const canvas = smartCutoutCanvasRef.value
   const image = smartCutoutImageRef.value
   if (!canvas || !image) return
 
-  // 获取点击坐标
-  const canvasRect = canvas.getBoundingClientRect()
-  const displayX = event.clientX - canvasRect.left
-  const displayY = event.clientY - canvasRect.top
+  // 🔥 借鉴HTML文件的简洁坐标处理方式
+  const rect = canvas.getBoundingClientRect()
+  const clickX = Math.round(event.clientX - rect.left)
+  const clickY = Math.round(event.clientY - rect.top)
 
-  // 🔥 立即创建右键点击效果 - 关键添加
-  createClickEffect(displayX, displayY, 'background')
+  console.log('🎯 [智能抠图右键] 点击坐标处理', {
+    原始事件坐标: { clientX: event.clientX, clientY: event.clientY },
+    Canvas边界: rect,
+    计算后坐标: { clickX, clickY },
+    Canvas尺寸: { width: canvas.width, height: canvas.height }
+  })
 
-  // 简单的坐标转换
-  const originalX = Math.round(displayX / smartCutoutZoom.value)
-  const originalY = Math.round(displayY / smartCutoutZoom.value)
+  // 🔥 立即创建右键点击效果 - 使用计算后的坐标
+  createClickEffect(clickX, clickY, 'background')
+
+  // 🔥 直接使用计算后的坐标，不再进行复杂的缩放转换
+  const originalX = clickX
+  const originalY = clickY
+
+  console.log('🎯 [智能抠图右键] 最终使用坐标', {
+    发送给SAM的坐标: { originalX, originalY }
+  })
 
   // 使用原始坐标调用SAM API（背景点）
   await addSmartCutoutPoint(originalX, originalY, 'background')
@@ -3687,7 +3713,7 @@ const createClickEffect = (x, y, type = 'foreground') => {
   // 创建点击效果容器
   const clickEffect = document.createElement('div')
   clickEffect.className = `click-effect ${type}`
-  
+
   // 设置位置（相对于容器）
   clickEffect.style.cssText = `
     position: absolute !important;
@@ -3740,7 +3766,7 @@ const createClickEffect = (x, y, type = 'foreground') => {
       transparent 100%
     )`
     sweepEffect.style.boxShadow = '0 0 20px rgba(16, 185, 129, 0.6)'
-    
+
     rippleEffect.style.background = 'rgba(16, 185, 129, 0.4)'
     rippleEffect.style.border = '2px solid rgba(16, 185, 129, 0.8)'
   } else {
@@ -3752,7 +3778,7 @@ const createClickEffect = (x, y, type = 'foreground') => {
       transparent 100%
     )`
     sweepEffect.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.6)'
-    
+
     rippleEffect.style.background = 'rgba(239, 68, 68, 0.4)'
     rippleEffect.style.border = '2px solid rgba(239, 68, 68, 0.8)'
   }
@@ -3760,7 +3786,7 @@ const createClickEffect = (x, y, type = 'foreground') => {
   // 组装效果
   clickEffect.appendChild(sweepEffect)
   clickEffect.appendChild(rippleEffect)
-  
+
   // 添加到容器
   container.appendChild(clickEffect)
 
@@ -8656,20 +8682,24 @@ const updatePointMarkersScale = () => {
   cursor: crosshair;
   transition: transform 0.3s ease;
 }
+
 /* 扫光动画 - 关键：从左到右的位移效果 */
 @keyframes sweepAnimation {
   0% {
     opacity: 0;
     transform: translateX(-100%) scale(0.8);
   }
+
   20% {
     opacity: 1;
     transform: translateX(-50%) scale(1);
   }
+
   80% {
     opacity: 1;
     transform: translateX(50%) scale(1);
   }
+
   100% {
     opacity: 0;
     transform: translateX(100%) scale(1.2);
@@ -8682,10 +8712,12 @@ const updatePointMarkersScale = () => {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.5);
   }
+
   50% {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
   }
+
   100% {
     opacity: 0;
     transform: translate(-50%, -50%) scale(2);
@@ -8716,23 +8748,21 @@ const updatePointMarkersScale = () => {
 
 .sweep-effect.foreground {
   background: linear-gradient(90deg,
-    transparent 0%,
-    rgba(16, 185, 129, 0.3) 20%,
-    rgba(16, 185, 129, 0.8) 50%,
-    rgba(16, 185, 129, 0.3) 80%,
-    transparent 100%
-  );
+      transparent 0%,
+      rgba(16, 185, 129, 0.3) 20%,
+      rgba(16, 185, 129, 0.8) 50%,
+      rgba(16, 185, 129, 0.3) 80%,
+      transparent 100%);
   box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
 }
 
 .sweep-effect.background {
   background: linear-gradient(90deg,
-    transparent 0%,
-    rgba(239, 68, 68, 0.3) 20%,
-    rgba(239, 68, 68, 0.8) 50%,
-    rgba(239, 68, 68, 0.3) 80%,
-    transparent 100%
-  );
+      transparent 0%,
+      rgba(239, 68, 68, 0.3) 20%,
+      rgba(239, 68, 68, 0.8) 50%,
+      rgba(239, 68, 68, 0.3) 80%,
+      transparent 100%);
   box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
 }
 

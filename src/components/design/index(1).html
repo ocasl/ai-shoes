@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAM交互式分割工具</title>
+    <!-- 主要CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    
+    <!-- 备用CDN - 如果主要CDN失败 -->
+    <script>
+        // 检查Vue是否加载成功，如果失败则尝试备用CDN
+        if (typeof Vue === 'undefined') {
+            console.log('主要CDN加载失败，尝试备用CDN...');
+            document.write('<script src="https://cdn.jsdelivr.net/npm/vue@3.3.4/dist/vue.global.js"><\/script>');
+        }
+        
+        // 检查axios是否加载成功，如果失败则尝试备用CDN
+        if (typeof axios === 'undefined') {
+            console.log('主要CDN加载失败，尝试备用CDN...');
+            document.write('<script src="https://cdn.jsdelivr.net/npm/axios@1.4.0/dist/axios.min.js"><\/script>');
+        }
+        
+        // 如果两个备用CDN都失败，尝试第三个CDN
+        setTimeout(function() {
+            if (typeof Vue === 'undefined') {
+                console.log('备用CDN也失败，尝试第三个CDN...');
+                document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.js"><\/script>');
+            }
+            if (typeof axios === 'undefined') {
+                document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.4.0/axios.min.js"><\/script>');
+            }
+        }, 2000);
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .model-info {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .control-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+
+        .panel h3 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn.active {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            transform: scale(1.05);
+        }
+
+        .point-type-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .point-type-buttons .btn {
+            flex: 1;
+            padding: 12px 8px;
+            font-size: 12px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .point-type-buttons .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .canvas-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+            margin-bottom: 30px;
+        }
+
+        .canvas-container h3 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            display: inline-block;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .canvas-wrapper canvas {
+            display: block;
+            cursor: crosshair;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .canvas-placeholder {
+            width: 400px;
+            height: 300px;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            color: #6c757d;
+            font-size: 1.1em;
+            text-align: center;
+        }
+
+        .status-panel {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+            margin-bottom: 30px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .status-value {
+            color: #6c757d;
+        }
+
+        .status-value.success {
+            color: #28a745;
+        }
+
+        .status-value.error {
+            color: #dc3545;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .points-info {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .points-info h4 {
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
+        .point-count {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            margin-right: 10px;
+            font-size: 0.9em;
+        }
+
+        .point-count.background {
+            background: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <div class="header">
+                <h1>🎯 SAM交互式分割工具</h1>
+                <p>基于Canvas的可视化交互界面</p>
+            </div>
+
+            <div class="main-content">
+                <!-- 控制面板 -->
+                <div class="control-panel">
+                    <div class="panel">
+                        <h3>📁 图像上传</h3>
+                        <div class="form-group">
+                            <label for="imageFile">选择图像文件</label>
+                            <input type="file" id="imageFile" @change="handleFileUpload" accept="image/*">
+                        </div>
+                        <div class="form-group">
+                            <label for="maxSize">最大尺寸 (px)</label>
+                            <input type="number" id="maxSize" v-model="maxSize" min="512" max="2048" step="64">
+                        </div>
+                        <div class="form-group">
+                            <label for="quality">压缩质量 (%)</label>
+                            <input type="number" id="quality" v-model="quality" min="50" max="100" step="5">
+                        </div>
+                        <div class="form-group" v-if="taskId">
+                            <label>当前任务ID</label>
+                            <div style="padding: 8px; background: #e9ecef; border-radius: 4px; font-family: monospace;">
+                                {{ taskId }}
+                            </div>
+                        </div>
+                        <button class="btn" @click="loadImage" :disabled="!selectedFile || loading">
+                            <span v-if="loading" class="loading"></span>
+                            {{ loading ? '加载中...' : '加载图像' }}
+                        </button>
+                    </div>
+
+                    <div class="panel">
+                        <h3>🎯 分割控制</h3>
+
+                        <div class="form-group">
+                            <label for="alpha">掩码透明度</label>
+                            <input type="range" id="alpha" v-model="alpha" min="0" max="1" step="0.1">
+                            <span>{{ alpha }}</span>
+                        </div>
+                                <div class="form-group">
+            <label for="maskAlpha">蒙版透明度</label>
+            <input type="range" id="maskAlpha" v-model="maskAlpha" min="0" max="255" step="25" @input="updateMaskTransparency">
+            <span>{{ maskAlpha }}</span>
+        </div>
+        
+                <!-- 配置对话框 -->
+        <div v-if="showConfig" class="modal" style="background: rgba(0,0,0,0.5); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000;">
+            <div class="modal-dialog" style="max-width: 500px; margin: 50px auto; background: white; padding: 20px; border-radius: 8px;">
+                <h3>模型配置</h3>
+                <div class="form-group">
+                    <label>置信度阈值: {{ config.confidence_threshold }}</label>
+                                            <input type="range" v-model="config.confidence_threshold" min="0.1" max="1.0" step="0.01" style="width: 100%;">
+                </div>
+                <div class="form-group">
+                    <label>掩码阈值: {{ config.mask_threshold }}</label>
+                                            <input type="range" v-model="config.mask_threshold" min="0.0" max="1.0" step="0.01" style="width: 100%;">
+                </div>
+                                    <div class="form-group">
+                        <label>稳定性分数阈值: {{ config.stability_score_threshold }}</label>
+                        <input type="range" v-model="config.stability_score_threshold" min="0.5" max="1.0" step="0.01" style="width: 100%;">
+                    </div>
+                    <div class="form-group">
+                        <label>最小面积阈值: {{ config.min_area_threshold }} (0=跳过过滤)</label>
+                        <input type="range" v-model="config.min_area_threshold" min="0" max="10000" step="5" style="width: 100%;">
+                    </div>
+                <div class="form-group">
+                    <label><input type="checkbox" v-model="config.use_hq_token"> 使用高质量token</label>
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" v-model="config.multimask_output"> 输出多个掩码</label>
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" v-model="config.enable_gpu_preprocessing"> GPU预处理</label>
+                </div>
+                <div class="form-group">
+                    <button @click="updateConfig" class="btn btn-primary">保存配置</button>
+                    <button @click="resetToDefault" class="btn btn-warning">还原默认配置</button>
+                    <button @click="showConfig = false" class="btn btn-secondary">关闭</button>
+                </div>
+            </div>
+        </div>
+                                        <button class="btn btn-danger" @click="resetAll" :disabled="!imageLoaded">
+            重置所有
+        </button>
+        <button class="btn btn-info" @click="showConfigDialog">
+            配置
+        </button>
+                <button class="btn btn-secondary" @click="debugCanvas" :disabled="!imageLoaded">
+                    调试Canvas
+        </button>
+            </div>
+        </div>
+
+                <!-- 状态面板 -->
+                <div class="status-panel" v-if="status">
+                    <h3>📊 服务状态</h3>
+                    <div class="status-item">
+                        <span class="status-label">服务状态:</span>
+                        <span class="status-value" :class="status.healthy ? 'success' : 'error'">
+                            {{ status.healthy ? '正常' : '异常' }}
+                        </span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">模型加载:</span>
+                        <span class="status-value" :class="status.modelLoaded ? 'success' : 'error'">
+                            {{ status.modelLoaded ? '已加载' : '未加载' }}
+                        </span>
+                    </div>
+                    <div class="status-item" v-if="status.device">
+                        <span class="status-label">计算设备:</span>
+                        <span class="status-value" :class="status.device === 'cuda' ? 'success' : 'info'">
+                            {{ status.device === 'cuda' ? 'GPU加速' : 'CPU' }}
+                        </span>
+                    </div>
+                    <div class="status-item" v-if="status.gpu_info && status.gpu_info.device_name">
+                        <span class="status-label">GPU型号:</span>
+                        <span class="status-value">{{ status.gpu_info.device_name }}</span>
+                    </div>
+                    <div class="status-item" v-if="status.gpu_info && status.gpu_info.memory_allocated">
+                        <span class="status-label">GPU内存:</span>
+                        <span class="status-value">{{ status.gpu_info.memory_allocated }}</span>
+                    </div>
+                    <div class="status-item" v-if="status.progressive_stats">
+                        <span class="status-label">置信度阈值:</span>
+                        <span class="status-value">{{ status.progressive_stats.confidence_threshold }}</span>
+                    </div>
+                    <div class="status-item" v-if="status.progressive_stats">
+                        <span class="status-label">掩码阈值:</span>
+                        <span class="status-value">{{ status.progressive_stats.mask_threshold }}</span>
+                    </div>
+                    <div class="status-item" v-if="status.progressive_stats">
+                        <span class="status-label">稳定性阈值:</span>
+                        <span class="status-value">{{ status.progressive_stats.stability_score_threshold }}</span>
+                    </div>
+                    <div class="status-item" v-if="status.progressive_stats">
+                        <span class="status-label">最小面积阈值:</span>
+                        <span class="status-value">{{ status.progressive_stats.min_area_threshold }}</span>
+                    </div>
+                    <div class="status-item" v-if="status.progressive_stats">
+                        <span class="status-label">高质量token:</span>
+                        <span class="status-value" :class="status.progressive_stats.use_hq_token ? 'success' : 'info'">
+                            {{ status.progressive_stats.use_hq_token ? '启用' : '禁用' }}
+                        </span>
+                    </div>
+                    <div class="status-item" v-if="status.progressive_stats">
+                        <span class="status-label">多掩码输出:</span>
+                        <span class="status-value" :class="status.progressive_stats.multimask_output ? 'success' : 'info'">
+                            {{ status.progressive_stats.multimask_output ? '启用' : '禁用' }}
+                        </span>
+                    </div>
+                    <div class="status-item" v-if="imageLoaded">
+                        <span class="status-label">图像尺寸:</span>
+                        <span class="status-value">{{ imageSize.width }} × {{ imageSize.height }}</span>
+                    </div>
+                    <div class="points-info" v-if="pointsCount > 0">
+                        <h4>点击点统计</h4>
+                        <span class="point-count">正点: {{ foregroundCount }}</span>
+                        <span class="point-count background">负点: {{ backgroundCount }}</span>
+                        <span class="point-count">总计: {{ pointsCount }}</span>
+                    </div>
+                </div>
+
+                <!-- Canvas交互区域 -->
+                <div class="canvas-container">
+                    <h3>🎨 交互式分割画布</h3>
+                    <div v-if="imageLoaded" class="canvas-wrapper">
+                        <canvas 
+                            ref="canvas" 
+                            :width="canvasWidth" 
+                            :height="canvasHeight"
+                            @click="handleCanvasClick"
+                            @mousemove="handleMouseMove"
+                            @mouseleave="handleMouseLeave">
+                        </canvas>
+                    </div>
+                    <div v-else class="canvas-placeholder">
+                        <div>
+                            <p>请先上传并加载图像</p>
+                            <p>点击画布进行分割</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 点击类型控制区域 -->
+                <div v-if="imageLoaded" class="control-panel" style="margin-top: 20px;">
+                    <div class="panel">
+                        <h3>🎯 点击类型选择</h3>
+                        <div class="form-group">
+                            <label>选择点击类型:</label>
+                            <div class="point-type-buttons" style="display: flex; gap: 10px; margin-top: 10px;">
+                                <button 
+                                    type="button" 
+                                    class="btn" 
+                                    :class="{ 'active': pointType === 'foreground' }"
+                                    @click="pointType = 'foreground'">
+                                    🔴 正点（前景）
+                                </button>
+                                <button 
+                                    type="button" 
+                                    class="btn" 
+                                    :class="{ 'active': pointType === 'background' }"
+                                    @click="pointType = 'background'">
+                                    🔵 负点（背景）
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>当前选择: <span style="color: #667eea; font-weight: bold;">{{ pointType === 'foreground' ? '正点（前景）' : '负点（背景）' }}</span></label>
+                        </div>
+                        <div class="form-group" style="border-top: 1px solid #e9ecef; padding-top: 15px; margin-top: 15px;">
+                            <label style="color: #495057; font-weight: bold; margin-bottom: 10px;">操作控制:</label>
+                            <div style="display: flex; gap: 10px; margin-top: 5px;">
+                                <button class="btn btn-secondary" @click="clearPoints" :disabled="!imageLoaded" style="padding: 12px 20px; font-size: 14px; font-weight: bold; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                                    🗑️ 清除所有点
+                                </button>
+                                <button class="btn btn-warning" @click="finishTask" style="padding: 12px 20px; font-size: 14px; font-weight: bold; background: #ffc107; color: #212529; border: none; border-radius: 8px; cursor: pointer;">
+                                    🏁 结束任务
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 消息提示 -->
+                <div v-if="message" class="alert" :class="messageType">
+                    {{ message }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 检查库是否加载成功
+        function checkLibrariesLoaded() {
+            if (typeof Vue === 'undefined') {
+                console.error('Vue.js 加载失败');
+                document.body.innerHTML = `
+                    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif; background: white; margin: 20px; border-radius: 10px;">
+                        <h1 style="color: #dc3545;">⚠️ 库加载失败</h1>
+                        <p>无法加载Vue.js库，请检查网络连接。</p>
+                        <p><strong>解决方案：</strong></p>
+                        <ul style="text-align: left; max-width: 400px; margin: 20px auto;">
+                            <li>检查网络连接</li>
+                            <li>尝试使用VPN</li>
+                            <li>联系网络管理员</li>
+                            <li>刷新页面重试</li>
+                        </ul>
+                        <button onclick="location.reload()" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">刷新页面</button>
+                    </div>
+                `;
+                return false;
+            }
+            
+            if (typeof axios === 'undefined') {
+                console.error('Axios 加载失败');
+                document.body.innerHTML = `
+                    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif; background: white; margin: 20px; border-radius: 10px;">
+                        <h1 style="color: #dc3545;">⚠️ 库加载失败</h1>
+                        <p>无法加载Axios库，请检查网络连接。</p>
+                        <p><strong>解决方案：</strong></p>
+                        <ul style="text-align: left; max-width: 400px; margin: 20px auto;">
+                            <li>检查网络连接</li>
+                            <li>尝试使用VPN</li>
+                            <li>联系网络管理员</li>
+                            <li>刷新页面重试</li>
+                        </ul>
+                        <button onclick="location.reload()" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">刷新页面</button>
+                    </div>
+                `;
+                return false;
+            }
+            
+            return true;
+        }
+
+        // 等待库加载完成
+        setTimeout(function() {
+            if (checkLibrariesLoaded()) {
+                const { createApp } = Vue;
+
+                createApp({
+                            data() {
+                return {
+                    // API配置
+                    apiBaseUrl: 'http://js1.blockelite.cn:34964/api',
+                    // apiBaseUrl: 'http://localhost:8801/api',
+                    
+                    // 任务配置
+                    taskId: null, // 由后端生成
+                    
+                    // 文件相关
+                    selectedFile: null,
+                    originalImage: null,
+                    
+                    // Canvas相关
+                    canvas: null,
+                    ctx: null,
+                    canvasWidth: 400,
+                    canvasHeight: 300,
+                    
+                    // 图像和蒙版
+                    imageElement: null,
+                    maskOverlay: null,
+                    
+                    // 点击点
+                    points: [],
+                    pointLabels: [],
+                    
+                    // 参数设置
+                    maxSize: 1024,
+                    quality: 85,
+                    pointType: 'foreground',
+                    alpha: 0.5,
+                    maskAlpha: 128,
+                    
+                    // 状态
+                    loading: false,
+                showConfig: false,
+                config: {
+                    confidence_threshold: 0.5,
+                    mask_threshold: 0.0,
+                    stability_score_threshold: 0.95,
+                    min_area_threshold: 0,
+                    use_hq_token: false,
+                    multimask_output: false,
+                    enable_gpu_preprocessing: true
+                },
+                    imageLoaded: false,
+                    imageSize: { width: 0, height: 0 },
+                    pointsCount: 0,
+                    foregroundCount: 0,
+                    backgroundCount: 0,
+                    
+                    // 消息
+                    message: '',
+                    messageType: 'info',
+                    
+                    // 服务状态
+                    status: null
+                }
+            },
+            
+            mounted() {
+                this.checkHealth();
+                // 定期检查服务状态
+                setInterval(() => {
+                    this.checkHealth();
+                }, 10000);
+            },
+            
+            methods: {
+                // 检查服务健康状态
+                async checkHealth() {
+                    try {
+                        const response = await axios.get(`${this.apiBaseUrl}/health`);
+                        this.status = {
+                            healthy: response.data.status === 'healthy',
+                            modelLoaded: response.data.model_loaded,
+                            device: response.data.device,
+                            gpu_info: response.data.gpu_info,
+                            progressive_stats: response.data.progressive_stats,
+                            preprocessing_stats: response.data.preprocessing_stats
+                        };
+                    } catch (error) {
+                        this.status = {
+                            healthy: false,
+                            modelLoaded: false
+                        };
+                    }
+                },
+                
+                // 处理文件上传
+                handleFileUpload(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        this.selectedFile = file;
+                        this.showMessage('文件已选择: ' + file.name, 'info');
+                    }
+                },
+                
+                // 加载图像
+                async loadImage() {
+                    if (!this.selectedFile) {
+                        this.showMessage('请先选择图像文件', 'error');
+                        return;
+                    }
+                    
+                    this.loading = true;
+                    this.showMessage('正在加载图像...', 'info');
+                    
+                    try {
+                        // 转换文件为base64
+                        const base64 = await this.fileToBase64(this.selectedFile);
+                        
+                        const response = await axios.post(`${this.apiBaseUrl}/load_image`, {
+                            image: base64,
+                            max_size: this.maxSize,
+                            quality: this.quality,
+                            taskId: this.taskId || 'default'
+                        });
+                        
+                        if (response.data.success) {
+                            // 保存后端返回的任务ID
+                            this.taskId = response.data.taskId || 'default';
+                            this.imageLoaded = true;
+                            this.imageSize = response.data.image_size;
+                            this.points = [];
+                            this.pointLabels = [];
+                            this.pointsCount = 0;
+                            this.foregroundCount = 0;
+                            this.backgroundCount = 0;
+                            this.maskOverlay = null;
+                            
+                            console.log('开始加载图像到Canvas...');
+                            // 加载图像到Canvas
+                            await this.loadImageToCanvas();
+                            console.log('Canvas图像加载完成');
+                            
+                            this.showMessage(response.data.message, 'success');
+                        } else {
+                            this.showMessage('加载图像失败', 'error');
+                        }
+                    } catch (error) {
+                        console.error('加载图像错误:', error);
+                        this.showMessage('加载图像失败: ' + (error.response?.data?.error || error.message), 'error');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                
+                // 加载图像到Canvas
+                async loadImageToCanvas() {
+                    return new Promise((resolve) => {
+                        this.$nextTick(() => {
+                            this.canvas = this.$refs.canvas;
+                            this.ctx = this.canvas.getContext('2d');
+                            
+                            // 创建图像元素
+                            this.imageElement = new Image();
+                            this.imageElement.crossOrigin = 'anonymous';
+                            
+                            this.imageElement.onload = () => {
+                                console.log('图像加载成功:', this.imageElement.width, 'x', this.imageElement.height);
+                                
+                                // 计算Canvas尺寸，限制最大尺寸
+                                const maxSize = 1024; // 与后端处理尺寸保持一致
+                                let canvasWidth = this.imageElement.width;
+                                let canvasHeight = this.imageElement.height;
+                                
+                                if (canvasWidth > maxSize || canvasHeight > maxSize) {
+                                    const scale = maxSize / Math.max(canvasWidth, canvasHeight);
+                                    canvasWidth = Math.round(canvasWidth * scale);
+                                    canvasHeight = Math.round(canvasHeight * scale);
+                                }
+                                
+                                this.canvasWidth = canvasWidth;
+                                this.canvasHeight = canvasHeight;
+                                this.canvas.width = this.canvasWidth;
+                                this.canvas.height = this.canvasHeight;
+                                
+                                // 重新获取context（因为改变Canvas尺寸会重置context）
+                                this.ctx = this.canvas.getContext('2d');
+                                
+                                // 立即绘制图像
+                                this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+                                this.ctx.drawImage(this.imageElement, 0, 0, this.canvasWidth, this.canvasHeight);
+                                console.log('原图已绘制到Canvas，尺寸:', this.canvasWidth, 'x', this.canvasHeight);
+                                
+                                // 强制重绘
+                                this.$nextTick(() => {
+                                    this.drawImage();
+                                });
+                                
+                                resolve();
+                            };
+                            
+                            this.imageElement.onerror = (error) => {
+                                console.error('图像加载失败:', error);
+                                this.showMessage('图像加载失败', 'error');
+                            };
+                            
+                            // 使用原始文件创建URL
+                            this.imageElement.src = URL.createObjectURL(this.selectedFile);
+                        });
+                    });
+                },
+                
+                // 绘制图像
+                drawImage() {
+                    console.log('开始绘制图像:', this.canvasWidth, 'x', this.canvasHeight);
+                    console.log('图像元素存在:', !!this.imageElement);
+                    console.log('Canvas元素存在:', !!this.canvas);
+                    console.log('Context存在:', !!this.ctx);
+                    
+                    if (!this.ctx || !this.imageElement) {
+                        console.error('Canvas或图像元素不存在');
+                        return;
+                    }
+                    
+                    // 清除Canvas
+                    this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+                    
+                    // 绘制原图
+                    this.ctx.drawImage(this.imageElement, 0, 0, this.canvasWidth, this.canvasHeight);
+                    console.log('原图绘制完成');
+                    
+                    // 绘制蒙版
+                    if (this.maskOverlay) {
+                        this.drawMaskOverlay();
+                    }
+                    
+                    // 绘制点击点
+                    this.drawPoints();
+                },
+                
+                // 更新Canvas显示（后端返回的是二值蒙版，只显示蒙版中的白色部分）
+                updateCanvasWithMask() {
+                    if (!this.maskOverlay) return;
+                    
+                    const maskImage = new Image();
+                    maskImage.onload = () => {
+                        // 先绘制原图
+                        this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+                        this.ctx.drawImage(this.imageElement, 0, 0, this.canvasWidth, this.canvasHeight);
+                        
+                        // 创建临时Canvas来处理蒙版
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = this.canvasWidth;
+                        tempCanvas.height = this.canvasHeight;
+                        const tempCtx = tempCanvas.getContext('2d');
+                        
+                        // 在临时Canvas上绘制蒙版
+                        tempCtx.drawImage(maskImage, 0, 0, this.canvasWidth, this.canvasHeight);
+                        
+                        // 获取蒙版数据
+                        const maskData = tempCtx.getImageData(0, 0, this.canvasWidth, this.canvasHeight);
+                        const data = maskData.data;
+                        
+                        // 创建红色高亮层
+                        const highlightCanvas = document.createElement('canvas');
+                        highlightCanvas.width = this.canvasWidth;
+                        highlightCanvas.height = this.canvasHeight;
+                        const highlightCtx = highlightCanvas.getContext('2d');
+                        
+                        // 设置红色半透明填充
+                        highlightCtx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                        highlightCtx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+                        
+                        // 获取高亮层数据
+                        const highlightData = highlightCtx.getImageData(0, 0, this.canvasWidth, this.canvasHeight);
+                        const highlightPixels = highlightData.data;
+                        
+                        // 合并蒙版和高亮层：只在蒙版为白色（255）的地方显示红色高亮
+                        for (let i = 0; i < data.length; i += 4) {
+                            const maskValue = data[i]; // 蒙版的灰度值
+                            if (maskValue > 128) { // 白色部分（分割出的对象）
+                                // 保持红色高亮
+                                highlightPixels[i] = 255;     // R
+                                highlightPixels[i + 1] = 0;   // G
+                                highlightPixels[i + 2] = 0;   // B
+                                highlightPixels[i + 3] = this.maskAlpha; // A (可调节透明度)
+                            } else {
+                                // 透明（不显示）
+                                highlightPixels[i + 3] = 0;
+                            }
+                        }
+                        
+                        // 将处理后的高亮层绘制到主Canvas
+                        highlightCtx.putImageData(highlightData, 0, 0);
+                        this.ctx.drawImage(highlightCanvas, 0, 0);
+                        
+                        // 绘制点击点
+                        this.drawPoints();
+                        console.log('Canvas更新完成 - 只显示蒙版白色部分');
+                    };
+                    maskImage.onerror = (error) => {
+                        console.error('蒙版加载失败:', error);
+                        this.showMessage('蒙版加载失败', 'error');
+                    };
+                    maskImage.src = this.maskOverlay;
+                },
+                
+                // 绘制点击点
+                drawPoints() {
+                    this.points.forEach((point, index) => {
+                        const [x, y] = point;
+                        const isForeground = this.pointLabels[index] === 1;
+                        
+                        // 绘制圆形点
+                        this.ctx.beginPath();
+                        this.ctx.arc(x, y, 8, 0, 2 * Math.PI);
+                        this.ctx.fillStyle = isForeground ? 'red' : 'blue';
+                        this.ctx.fill();
+                        this.ctx.strokeStyle = 'white';
+                        this.ctx.lineWidth = 2;
+                        this.ctx.stroke();
+                        
+                        // 绘制数字标签
+                        this.ctx.fillStyle = 'white';
+                        this.ctx.font = '12px Arial';
+                        this.ctx.textAlign = 'center';
+                        this.ctx.textBaseline = 'middle';
+                        this.ctx.fillText(index + 1, x + 10, y - 10);
+                    });
+                },
+                
+                // 处理Canvas点击
+                async handleCanvasClick(event) {
+                    if (!this.imageLoaded) {
+                        this.showMessage('请先加载图像', 'error');
+                        return;
+                    }
+                    
+                    const rect = this.canvas.getBoundingClientRect();
+                    const x = Math.round(event.clientX - rect.left);
+                    const y = Math.round(event.clientY - rect.top);
+                    
+                    this.showMessage(`正在处理点击 (${x}, ${y})...`, 'info');
+                    
+                    try {
+                        const response = await axios.post(`${this.apiBaseUrl}/segment`, {
+                            x: x,
+                            y: y,
+                            taskId: this.taskId,
+                            point_type: this.pointType
+                        });
+                        
+                        if (response.data.success) {
+                            // 添加点击点
+                            this.points.push([x, y]);
+                            this.pointLabels.push(this.pointType === 'foreground' ? 1 : 0);
+                            
+                            // 更新蒙版
+                            this.maskOverlay = 'data:image/png;base64,' + response.data.mask;
+                            
+                            // 更新统计
+                            this.pointsCount = response.data.points.total_count;
+                            this.foregroundCount = response.data.points.foreground_count;
+                            this.backgroundCount = response.data.points.background_count;
+                            
+                            // 立即更新Canvas显示
+                            this.updateCanvasWithMask();
+                            
+                            this.showMessage(response.data.message, 'success');
+                        } else {
+                            this.showMessage('分割失败', 'error');
+                        }
+                    } catch (error) {
+                        console.error('分割错误:', error);
+                        this.showMessage('分割失败: ' + (error.response?.data?.error || error.message), 'error');
+                    }
+                },
+                
+                // 处理鼠标移动
+                handleMouseMove(event) {
+                    if (!this.imageLoaded) return;
+                    
+                    const rect = this.canvas.getBoundingClientRect();
+                    const x = event.clientX - rect.left;
+                    const y = event.clientY - rect.top;
+                    
+                    // 可以在这里添加鼠标悬停效果
+                },
+                
+                // 处理鼠标离开
+                handleMouseLeave() {
+                    // 可以在这里清除鼠标悬停效果
+                },
+                
+                // 清除点击点
+                async clearPoints() {
+                    try {
+                        const response = await axios.post(`${this.apiBaseUrl}/clear_points`, {
+                            taskId: this.taskId
+                        });
+                        if (response.data.success) {
+                            this.points = [];
+                            this.pointLabels = [];
+                            this.pointsCount = 0;
+                            this.foregroundCount = 0;
+                            this.backgroundCount = 0;
+                            this.maskOverlay = null;
+                            
+                            // 重新绘制原图
+                            this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+                            this.ctx.drawImage(this.imageElement, 0, 0, this.canvasWidth, this.canvasHeight);
+                            
+                            this.showMessage(response.data.message, 'success');
+                        }
+                    } catch (error) {
+                        console.error('清除点击点错误:', error);
+                        this.showMessage('清除失败: ' + (error.response?.data?.error || error.message), 'error');
+                    }
+                },
+                
+                // 重置所有
+                resetAll() {
+                    this.selectedFile = null;
+                    this.originalImage = null;
+                    this.imageElement = null;
+                    this.maskOverlay = null;
+                    this.points = [];
+                    this.pointLabels = [];
+                    this.imageLoaded = false;
+                    this.pointsCount = 0;
+                    this.foregroundCount = 0;
+                    this.backgroundCount = 0;
+                    this.imageSize = { width: 0, height: 0 };
+                    this.taskId = null; // 重置任务ID
+                    this.showMessage('已重置所有数据', 'info');
+                },
+                
+                // 调试Canvas
+                debugCanvas() {
+                    console.log('Canvas调试信息:');
+                    console.log('- Canvas元素:', this.canvas);
+                    console.log('- Canvas尺寸:', this.canvasWidth, 'x', this.canvasHeight);
+                    console.log('- 图像元素:', this.imageElement);
+                    console.log('- 图像尺寸:', this.imageElement?.width, 'x', this.imageElement?.height);
+                    console.log('- 点击点数量:', this.points.length);
+                    
+                    // 强制重新绘制原图
+                    if (this.imageElement) {
+                        this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+                        this.ctx.drawImage(this.imageElement, 0, 0, this.canvasWidth, this.canvasHeight);
+                        console.log('Canvas已重新绘制原图');
+                        this.showMessage('Canvas已重新绘制原图', 'info');
+                    } else {
+                        this.showMessage('图像元素不存在', 'error');
+                    }
+                    
+                    // 如果有蒙版，也显示蒙版
+                    if (this.maskOverlay) {
+                        this.updateCanvasWithMask();
+                        console.log('Canvas已更新蒙版');
+                    }
+                },
+                
+                // 显示配置对话框
+                async showConfigDialog() {
+                    try {
+                        // 获取当前配置
+                        const [preprocessingResponse, progressiveResponse] = await Promise.all([
+                            axios.get(`${this.apiBaseUrl}/preprocessing_config`),
+                            axios.get(`${this.apiBaseUrl}/progressive_config`)
+                        ]);
+                        
+                        if (preprocessingResponse.data.success && progressiveResponse.data.success) {
+                            // 更新本地配置
+                            this.config.enable_gpu_preprocessing = preprocessingResponse.data.config.enable_gpu_preprocessing;
+                            this.config.confidence_threshold = progressiveResponse.data.config.confidence_threshold;
+                            this.config.mask_threshold = progressiveResponse.data.config.mask_threshold;
+                            this.config.stability_score_threshold = progressiveResponse.data.config.stability_score_threshold;
+                            this.config.min_area_threshold = progressiveResponse.data.config.min_area_threshold;
+                            this.config.use_hq_token = progressiveResponse.data.config.use_hq_token;
+                            this.config.multimask_output = progressiveResponse.data.config.multimask_output;
+                        }
+                    } catch (error) {
+                        console.error('获取配置失败:', error);
+                        this.showMessage('获取配置失败', 'error');
+                    }
+                    
+                    this.showConfig = true;
+                },
+                
+                // 重置任务ID
+                resetTaskId() {
+                    this.taskId = null;
+                },
+                
+                // 更新配置
+                async updateConfig() {
+                    try {
+                        // 分别更新预处理配置和渐进式配置
+                        const preprocessingConfig = {
+                            enable_gpu_preprocessing: this.config.enable_gpu_preprocessing
+                        };
+                        
+                        const progressiveConfig = {
+                            confidence_threshold: this.config.confidence_threshold,
+                            mask_threshold: this.config.mask_threshold,
+                            stability_score_threshold: this.config.stability_score_threshold,
+                            min_area_threshold: this.config.min_area_threshold,
+                            use_hq_token: this.config.use_hq_token,
+                            multimask_output: this.config.multimask_output
+                        };
+                        
+                        // 更新预处理配置
+                        await axios.post(`${this.apiBaseUrl}/preprocessing_config`, preprocessingConfig);
+                        
+                        // 更新渐进式配置
+                        await axios.post(`${this.apiBaseUrl}/progressive_config`, progressiveConfig);
+                        
+                        this.showMessage('配置已更新', 'success');
+                        this.showConfig = false;
+                        
+                        // 刷新页面以显示最新配置
+                        location.reload();
+                    } catch (error) {
+                        console.error('配置更新失败:', error);
+                        this.showMessage('配置更新失败: ' + (error.response?.data?.error || error.message), 'error');
+                    }
+                },
+                
+                // 结束任务
+                async finishTask() {
+                    try {
+                        const response = await axios.post(`${this.apiBaseUrl}/finish`, {
+                            taskId: this.taskId
+                        });
+                        if (response.data.success) {
+                            this.showMessage(response.data.message, 'success');
+                            console.log('任务结束结果:', response.data);
+                            // 重置状态
+                            this.imageLoaded = false;
+                            this.points = [];
+                            this.pointLabels = [];
+                            this.taskId = null;
+                        }
+                    } catch (error) {
+                        console.error('结束任务失败:', error);
+                        this.showMessage('结束任务失败: ' + (error.response?.data?.error || error.message), 'error');
+                    }
+                },
+                
+                // 还原默认配置
+                async resetToDefault() {
+                    try {
+                        // 设置默认配置
+                        const defaultProgressiveConfig = {
+                            confidence_threshold: 0.5,
+                            mask_threshold: 0.0,
+                            stability_score_threshold: 0.95,
+                            min_area_threshold: 0,
+                            use_hq_token: false,
+                            multimask_output: false
+                        };
+                        
+                        const defaultPreprocessingConfig = {
+                            enable_gpu_preprocessing: true
+                        };
+                        
+                        // 更新后端配置
+                        await axios.post(`${this.apiBaseUrl}/progressive_config`, defaultProgressiveConfig);
+                        await axios.post(`${this.apiBaseUrl}/preprocessing_config`, defaultPreprocessingConfig);
+                        
+                        // 更新本地配置
+                        this.config.confidence_threshold = defaultProgressiveConfig.confidence_threshold;
+                        this.config.mask_threshold = defaultProgressiveConfig.mask_threshold;
+                        this.config.stability_score_threshold = defaultProgressiveConfig.stability_score_threshold;
+                        this.config.min_area_threshold = defaultProgressiveConfig.min_area_threshold;
+                        this.config.use_hq_token = defaultProgressiveConfig.use_hq_token;
+                        this.config.multimask_output = defaultProgressiveConfig.multimask_output;
+                        this.config.enable_gpu_preprocessing = defaultPreprocessingConfig.enable_gpu_preprocessing;
+                        
+                        this.showMessage('已还原默认配置', 'success');
+                        
+                        // 刷新页面以显示最新配置
+                        location.reload();
+                    } catch (error) {
+                        console.error('还原默认配置失败:', error);
+                        this.showMessage('还原默认配置失败: ' + (error.response?.data?.error || error.message), 'error');
+                    }
+                },
+                
+                // 文件转base64
+                fileToBase64(file) {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        reader.onload = () => {
+                            const base64 = reader.result.split(',')[1];
+                            resolve(base64);
+                        };
+                        reader.onerror = error => reject(error);
+                    });
+                },
+                
+                // 更新蒙版透明度
+                updateMaskTransparency() {
+                    if (this.maskOverlay) {
+                        this.updateCanvasWithMask();
+                    }
+                },
+                
+                // 显示消息
+                showMessage(text, type = 'info') {
+                    this.message = text;
+                    this.messageType = type;
+                    setTimeout(() => {
+                        this.message = '';
+                    }, 5000);
+                }
+            }
+        }).mount('#app');
+        }
+    }, 3000); // 等待3秒确保库加载完成
+    </script>
+</body>
+</html> 
