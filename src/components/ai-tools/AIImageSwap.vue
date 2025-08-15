@@ -292,7 +292,29 @@ const handleMainFileSelect = (event: Event) => {
   }
 };
 
+// 重置结果相关状态的函数
+const resetResultStates = () => {
+  console.log('🔄 重置一键抠图结果相关状态');
+  
+  // 重置结果显示状态
+  isViewingResults.value = false;
+  resultImages.value = [];
+  isProcessingAIImageSwapTask.value = false;
+  
+  // 清空当前任务ID
+  currentTaskId = null;
+  console.log('🆔 清空当前任务ID');
+  
+  // 重置store中的图片结果
+  shoeStore.setAiTaskImages([]);
+  
+  console.log('✅ 一键抠图结果状态已重置');
+};
+
 const confirmMainPreview = () => {
+  // 图片上传时重置结果状态
+  resetResultStates();
+  
   let fileToUpload: File | null = null;
   const doUpload = (file: File) => {
     uploadFile(file, (_, imageId) => {
@@ -504,10 +526,22 @@ const compressImage = (file: File): Promise<File> => {
   })
 }
 
+// 当前正在处理的任务ID - 确保taskId一致性
+let currentTaskId: string | null = null;
+
 // 直接查询任务结果的函数
 const queryTaskResult = async (taskId: string, retryCount = 0) => {
-  const maxRetries = 5; // 最多重试5次
+  const maxRetries =100; // 最多重试10次
   const retryDelay = 500; // 每次重试间隔500ms
+
+  // 🔥 严格验证taskId，确保只处理当前任务
+  if (taskId !== currentTaskId) {
+    console.warn('⚠️ 查询的taskId与当前任务ID不匹配，忽略此查询', {
+      查询的taskId: taskId,
+      当前任务ID: currentTaskId
+    });
+    return;
+  }
 
   try {
     console.log(`🔍 查询任务结果 (第${retryCount + 1}次):`, taskId);
@@ -555,8 +589,10 @@ const queryTaskResult = async (taskId: string, retryCount = 0) => {
           imageWorkspaceRef.value.showResults(imageUrls);
         }
 
-        ElMessage.success('抠图成功');
-        isProcessingAIImageSwapTask.value = false;
+        // 🔥 只显示一次成功提示，避免重复
+        if (isProcessingAIImageSwapTask.value) {
+          isProcessingAIImageSwapTask.value = false;
+        }
 
         // 重置任务状态，关闭进度条
         shoeStore.setAiTaskStatus('success');
@@ -604,10 +640,19 @@ const queryTaskResult = async (taskId: string, retryCount = 0) => {
 const startBackupQuery = (taskId: string) => {
   console.log('🔄 启动备用查询机制，taskId:', taskId);
 
+  // 🔥 严格验证taskId，确保只为当前任务启动备用查询
+  if (taskId !== currentTaskId) {
+    console.warn('⚠️ 备用查询的taskId与当前任务ID不匹配，忽略备用查询', {
+      备用查询taskId: taskId,
+      当前任务ID: currentTaskId
+    });
+    return;
+  }
+
   // 10秒后开始备用查询，给WebSocket足够的时间
   setTimeout(() => {
-    // 如果WebSocket还没有获取到结果，则启动备用查询
-    if (isProcessingAIImageSwapTask.value && !isViewingResults.value) {
+    // 🔥 再次验证taskId，确保任务没有被替换
+    if (taskId === currentTaskId && isProcessingAIImageSwapTask.value && !isViewingResults.value) {
       console.log('🔄 WebSocket未获取到结果，启动备用查询');
       queryTaskResult(taskId);
     }
@@ -615,7 +660,8 @@ const startBackupQuery = (taskId: string) => {
 
   // 30秒后强制查询，确保不会永远等待
   setTimeout(() => {
-    if (isProcessingAIImageSwapTask.value && !isViewingResults.value) {
+    // 🔥 再次验证taskId，确保任务没有被替换
+    if (taskId === currentTaskId && isProcessingAIImageSwapTask.value && !isViewingResults.value) {
       console.log('🔄 强制启动备用查询');
       queryTaskResult(taskId);
     }
@@ -652,6 +698,12 @@ const handleGenerate = async () => {
   }
 
   console.log('✅ 图片检查通过，开始处理');
+
+  // 🔥 在开始生成前重置结果状态，确保不会显示之前的结果
+  resetResultStates();
+  
+  // 🔥 停止之前的WebSocket连接，确保不会混乱
+  stopAiTaskWs();
 
   // 显示加载中提示
   const loadingInstance = ElLoading.service({
@@ -699,6 +751,14 @@ const handleGenerate = async () => {
       if (result && typeof result === 'string') {
         const taskId = result;
         console.log('✅ 获得taskId:', taskId);
+        
+        // 🔥 设置当前任务ID，确保taskId一致性
+        currentTaskId = taskId;
+        console.log('🆔 设置当前任务ID:', currentTaskId);
+        
+        // 🔥 停止之前的WebSocket连接，确保不会混乱
+        stopAiTaskWs();
+        
         console.log('🚀 开始设置任务状态...');
 
         // 立即设置任务状态为运行中，显示进度条
@@ -752,7 +812,10 @@ const handleGenerate = async () => {
             imageWorkspaceRef.value.showResults(resultImages.value)
           }
 
-          ElMessage.success('抠图成功')
+          // 🔥 只显示一次成功提示，避免重复
+          if (isProcessingAIImageSwapTask.value) {
+            isProcessingAIImageSwapTask.value = false
+          }
           return;
         }
       }
@@ -785,8 +848,10 @@ watch(() => shoeStore.aiTaskImages, (newImages) => {
       if (imageWorkspaceRef.value) {
         imageWorkspaceRef.value.showResults(newImages)
       }
-      ElMessage.success('抠图成功')
-      isProcessingAIImageSwapTask.value = false // 重置任务状态
+      // 🔥 只显示一次成功提示，避免重复
+      if (isProcessingAIImageSwapTask.value) {
+        isProcessingAIImageSwapTask.value = false // 重置任务状态
+      }
     }
   }
 })

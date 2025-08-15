@@ -149,13 +149,13 @@ export function startAiTaskWs(taskId: string, taskType?: string) {
           }
 
           console.log('✅ 任务执行成功，taskId验证通过，开始查询结果...')
-          
+
           // 防止重复查询
           if (isQueryingResult) {
             console.log('⚠️ 正在查询结果中，跳过重复调用')
             return
           }
-          
+
           isQueryingResult = true
           store.setAiTaskStatus('loading_result') // 设置为加载结果状态
           store.setAiTaskProgress(100)
@@ -256,7 +256,7 @@ export function startAiTaskWs(taskId: string, taskType?: string) {
             setTimeout(() => {
               console.log(`🔄 第${comfyuiRetryCount}次重试WebSocket连接...`)
               startAiTaskWs(taskId, taskType)
-            }, 5000)
+            }, 3000)
 
             return // 不设置为失败状态，继续重试
           } else {
@@ -498,7 +498,7 @@ export function stopAiTaskWs() {
   // 重置重连计数和查询标志
   reconnectCount = 0
   isQueryingResult = false
-  
+
   // 清空当前任务ID
   currentTaskId = null
   console.log('🆔 清空当前任务ID')

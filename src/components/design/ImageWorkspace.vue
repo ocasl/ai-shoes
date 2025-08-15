@@ -762,6 +762,8 @@ const samUploadProgress = ref(0)
 const samUploadProgressText = ref('预处理图像中，请稍候...')
 const samUploadController = ref<AbortController | null>(null)
 const samTaskId = ref<string | null>(null)
+// 当前正在处理的任务ID - 确保taskId一致性
+let currentWorkspaceTaskId: string | null = null
 
 // SAM API配置
 const SAM_API_BASE = 'http://js1.blockelite.cn:34965/api'
@@ -803,6 +805,10 @@ const performCutoutWithMask = async (imageId: number) => {
         const taskId = result;
         console.log('🎯 获得taskId:', taskId);
 
+        // 🔥 设置当前任务ID，确保taskId一致性
+        currentWorkspaceTaskId = taskId;
+        console.log('🆔 [ImageWorkspace] 设置当前任务ID:', currentWorkspaceTaskId);
+
         // 直接查询结果
         await queryTaskResultInWorkspace(taskId);
         return;
@@ -840,7 +846,6 @@ const performCutoutWithMask = async (imageId: number) => {
             console.log('🎯 已设置全局抠图图片ID:', ossId)
           }
 
-          ElMessage.success('抠图完成')
           return
         }
       }
@@ -860,6 +865,15 @@ const performCutoutWithMask = async (imageId: number) => {
 const queryTaskResultInWorkspace = async (taskId: string, retryCount = 0) => {
   const maxRetries = 5; // 最多重试5次
   const retryDelay = 500; // 每次重试间隔500ms
+
+  // 🔥 严格验证taskId，确保只处理当前任务
+  if (taskId !== currentWorkspaceTaskId) {
+    console.warn('⚠️ [ImageWorkspace] 查询的taskId与当前任务ID不匹配，忽略此查询', {
+      查询的taskId: taskId,
+      当前任务ID: currentWorkspaceTaskId
+    });
+    return;
+  }
 
   try {
     console.log(`🔍 [ImageWorkspace] 查询任务结果 (第${retryCount + 1}次):`, taskId);
@@ -918,7 +932,6 @@ const queryTaskResultInWorkspace = async (taskId: string, retryCount = 0) => {
           console.log('🌐 [ImageWorkspace] 已设置全局抠图图片ID:', ossId);
         }
 
-        ElMessage.success('抠图完成');
         return;
       }
     }
@@ -927,7 +940,12 @@ const queryTaskResultInWorkspace = async (taskId: string, retryCount = 0) => {
     if (retryCount < maxRetries) {
       console.log(`⏳ [ImageWorkspace] 暂无结果，${retryDelay}ms后进行第${retryCount + 2}次重试...`);
       setTimeout(() => {
-        queryTaskResultInWorkspace(taskId, retryCount + 1);
+        // 🔥 再次验证taskId，确保任务没有被替换
+        if (taskId === currentWorkspaceTaskId) {
+          queryTaskResultInWorkspace(taskId, retryCount + 1);
+        } else {
+          console.warn('⚠️ [ImageWorkspace] 重试时taskId已变更，停止重试');
+        }
       }, retryDelay);
     } else {
       console.error('❌ [ImageWorkspace] 查询已达最大重试次数，停止重试');
@@ -941,7 +959,12 @@ const queryTaskResultInWorkspace = async (taskId: string, retryCount = 0) => {
     if (retryCount < maxRetries) {
       console.log(`🔄 [ImageWorkspace] ${retryDelay}ms后进行第${retryCount + 2}次重试...`);
       setTimeout(() => {
-        queryTaskResultInWorkspace(taskId, retryCount + 1);
+        // 🔥 再次验证taskId，确保任务没有被替换
+        if (taskId === currentWorkspaceTaskId) {
+          queryTaskResultInWorkspace(taskId, retryCount + 1);
+        } else {
+          console.warn('⚠️ [ImageWorkspace] 重试时taskId已变更，停止重试');
+        }
       }, retryDelay);
     } else {
       console.error('❌ [ImageWorkspace] 查询已达最大重试次数，停止重试');
@@ -4306,7 +4329,6 @@ const exitSmartCutoutMode = () => {
 const showSegmentationResult = (imageUrl: string) => {
   editingImageUrl.value = imageUrl
   currentTool.value = ''
-  ElMessage.success('抠图完成')
 }
 
 // 创建图片
