@@ -373,6 +373,10 @@
                       smartCutoutImageRef.naturalHeight }}</div>
                     <div v-if="smartCutoutImageRef">图片显示尺寸: {{ smartCutoutImageRef.offsetWidth }}x{{
                       smartCutoutImageRef.offsetHeight }}</div>
+                    <div v-if="smartCutoutImageRef">CSS宽度: {{ getImageCSSWidth() }}</div>
+                    <div v-if="smartCutoutImageRef">CSS高度: {{ getImageCSSHeight() }}</div>
+                    <div v-if="smartCutoutImageRef">CSS最大宽度: {{ getImageCSSMaxWidth() }}</div>
+                    <div v-if="smartCutoutImageRef">CSS最大高度: {{ getImageCSSMaxHeight() }}</div>
                     <div>CSS缩放: {{ Math.round(smartCutoutZoom * 100) }}%</div>
                     <div>点击点数量: {{ smartCutoutPoints.length }}</div>
                     <div>前景点: {{smartCutoutPoints.filter(p => p.type === 'foreground').length}}</div>
@@ -592,6 +596,11 @@ const smartCutoutPoints = ref<Array<{ x: number, y: number, type: 'foreground' |
 const smartCutoutMask = ref('')
 const smartCutoutImageRef = ref<HTMLImageElement | null>(null)
 const smartCutoutCanvasRef = ref<HTMLCanvasElement | null>(null)
+
+// 蒙版动画相关状态
+const maskAnimationProgress = ref(0)
+const isMaskAnimating = ref(false)
+const maskAnimationId = ref<number | null>(null)
 const smartCutoutContainerRef = ref<HTMLElement | null>(null)
 const cutoutResultCanvasRef = ref<HTMLCanvasElement | null>(null)
 
@@ -751,7 +760,42 @@ const applySmartCutoutZoom = () => {
   console.log('🔍 应用CSS缩放:', smartCutoutZoom.value)
 }
 
+// 获取图片CSS样式的方法
+const getImageCSSWidth = () => {
+  if (!smartCutoutImageRef.value) return 'N/A'
+  try {
+    return window.getComputedStyle(smartCutoutImageRef.value).width
+  } catch (e) {
+    return 'Error'
+  }
+}
 
+const getImageCSSHeight = () => {
+  if (!smartCutoutImageRef.value) return 'N/A'
+  try {
+    return window.getComputedStyle(smartCutoutImageRef.value).height
+  } catch (e) {
+    return 'Error'
+  }
+}
+
+const getImageCSSMaxWidth = () => {
+  if (!smartCutoutImageRef.value) return 'N/A'
+  try {
+    return window.getComputedStyle(smartCutoutImageRef.value).maxWidth
+  } catch (e) {
+    return 'Error'
+  }
+}
+
+const getImageCSSMaxHeight = () => {
+  if (!smartCutoutImageRef.value) return 'N/A'
+  try {
+    return window.getComputedStyle(smartCutoutImageRef.value).maxHeight
+  } catch (e) {
+    return 'Error'
+  }
+}
 
 // 在智能抠图图片加载时设置初始缩放
 
@@ -1516,8 +1560,10 @@ const cancelSamUpload = () => {
 
 // 智能抠图工具设置
 // 智能抠图工具设置 - 简化版
+// 智能抠图工具设置 - 简化版
+// 智能抠图工具设置 - 修改为入口直接上传图片并拿到独立ID
 const setupSmartCutoutTool = async () => {
-  console.log('🎯 设置智能抠图工具')
+  console.log('🎯 设置智能抠图工具（新上传逻辑）')
 
   try {
     // 检查图片是否存在
@@ -1527,32 +1573,79 @@ const setupSmartCutoutTool = async () => {
       return
     }
 
-    // 显示上传进度弹窗
+    // 统一显示上传进度弹窗
     showSamUploadProgress.value = true
     samUploadProgress.value = 0
-    samUploadProgressText.value = '预处理图像中，请稍候...'
+    samUploadProgressText.value = '图片上传中...'
 
-    // 启用智能抠图模式
+    // ——步骤1：始终异步上传图片，获取新的图片ID——
+    let imageUploadResult: { url: string, id?: number }
+    try {
+      // 先将图片处理成1024x1024尺寸
+      samUploadProgress.value = 10
+      samUploadProgressText.value = '正在处理图片尺寸...'
+
+      console.log('🎯 [智能抠图] 开始处理图片尺寸为1024x1024')
+      const base64Data = await imageToBase64(currentImageUrl)
+
+      samUploadProgress.value = 20
+      samUploadProgressText.value = '图片处理完成，准备上传...'
+
+      // 将处理后的base64转换为文件并上传
+      const dataUrl = `data:image/jpeg;base64,${base64Data}`
+      const blob = dataURLtoBlob(dataUrl)
+      const file = new File([blob], `smartcutout_${Date.now()}.jpg`, { type: 'image/jpeg' })
+
+      console.log('🎯 [智能抠图] 处理后的图片尺寸:', {
+        原始URL: currentImageUrl.substring(0, 50) + '...',
+        处理后文件大小: file.size,
+        文件类型: file.type
+      })
+
+      imageUploadResult = await uploadEditedImage(file)
+
+      if (!imageUploadResult.id) throw new Error('图片上传未获得有效ID')
+      console.log('【智能抠图】上传完成，独立图片ID：', imageUploadResult.id, 'url:', imageUploadResult.url)
+
+      // 用新ID和url替换当前编辑图片
+      editingImageUrl.value = imageUploadResult.url
+      hasEdits.value = true
+      editedImageInfo.value = {
+        url: imageUploadResult.url,
+        id: imageUploadResult.id
+      }
+      // 此时已获得独立图片ID，后续分割API、taskId全部用该ID
+
+    } catch (uploadError) {
+      showSamUploadProgress.value = false
+      ElMessage.error('智能抠图图片上传失败: ' + (uploadError.message || uploadError))
+      currentTool.value = ''
+      isSmartCutoutMode.value = false
+      closeToolModal()
+      return
+    }
+
+    // 步骤2：准备SAM流程（以独立上传的新图片ID继续）
+    samUploadProgress.value = 30
+    samUploadProgressText.value = '预处理图片中，请稍候...'
+
     isSmartCutoutMode.value = true
-
-    // 重置状态
     isImageLoadedToSAM.value = false
     smartCutoutPoints.value = []
     smartCutoutMask.value = ''
-    smartCutoutZoom.value = 1.0 // 重置为默认缩放
+    smartCutoutZoom.value = 1.0
 
-    // 模拟进度
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    samUploadProgress.value = 40
-    samUploadProgressText.value = '正在转换图片格式...'
-
-    // 直接转换图片（无需智能缩放）
+    // 转换为base64
     let base64Data: string
     try {
-      base64Data = await imageToBase64(currentImageUrl)
+      base64Data = await imageToBase64(editingImageUrl.value)
     } catch (error) {
-      console.error('图片转换失败:', error)
-      throw new Error('图片格式转换失败，请检查图片是否有效')
+      showSamUploadProgress.value = false
+      ElMessage.error('图片格式转换失败，请检查图片是否有效')
+      currentTool.value = ''
+      isSmartCutoutMode.value = false
+      closeToolModal()
+      return
     }
 
     samUploadProgress.value = 70
@@ -1560,10 +1653,14 @@ const setupSmartCutoutTool = async () => {
 
     try {
       await loadImageToSAM(base64Data)
-      console.log('🎯 SAM上传成功')
+      isImageLoadedToSAM.value = true
     } catch (error) {
-      console.error('SAM上传失败:', error)
-      throw new Error('SAM服务器连接失败，请检查网络连接或稍后重试')
+      showSamUploadProgress.value = false
+      ElMessage.error('SAM服务器连接失败，请检查网络连接或稍后重试')
+      currentTool.value = ''
+      isSmartCutoutMode.value = false
+      closeToolModal()
+      return
     }
 
     samUploadProgress.value = 100
@@ -1577,20 +1674,61 @@ const setupSmartCutoutTool = async () => {
     nextTick(async () => {
       await initSmartCutoutCanvas()
     })
-
   } catch (error: any) {
-    console.error('🎯 智能抠图初始化失败:', error)
     showSamUploadProgress.value = false
-
-    if (error.name === 'AbortError' || error.message === '操作已取消') {
-      return
-    }
-
+    if (error.name === 'AbortError' || error.message === '操作已取消') return
     currentTool.value = ''
     isSmartCutoutMode.value = false
     closeToolModal()
+    ElMessage.error('智能抠图初始化失败:' + (error.message || '未知错误'))
   }
 }
+
+
+
+
+
+// sam单独处理的
+
+
+// 智能抠图专用的上传，并记录上传ID
+const smartCutoutImageId = ref<number | undefined>()
+const smartCutoutImageUrl = ref<string>('')
+
+// 智能抠图专用上传图片并返回图片信息
+const uploadForSmartCutout = async (imageUrl: string): Promise<{ id: number, url: string }> => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      let file: File
+
+      // 1. 如果 imageUrl 是 base64
+      if (imageUrl.startsWith('data:image')) {
+        const blob = dataURLtoBlob(imageUrl)
+        file = new File([blob], 'smartcutout.png', { type: 'image/png' })
+      }
+      // 2. 如果 imageUrl 是 http(s) 链接
+      else {
+        const res = await fetch(imageUrl)
+        const blob = await res.blob()
+        file = new File([blob], 'smartcutout.png', { type: blob.type || 'image/png' })
+      }
+
+      // 3. 上传到你的服务器。写你自己的上传API
+      const uploadResp = await uploadImage(file)
+      if (uploadResp.code === 0 || uploadResp.code === 200) {
+        const imageData = uploadResp.data as UploadImageResponse
+        smartCutoutImageId.value = imageData.id
+        smartCutoutImageUrl.value = imageData.url  // 或者 feedbackImage(imageData.id).data
+        resolve({ id: imageData.id, url: smartCutoutImageUrl.value })
+      } else {
+        reject(uploadResp.msg || '上传失败')
+      }
+    } catch (e) {
+      reject(e)
+    }
+  })
+}
+
 
 
 
@@ -1702,7 +1840,13 @@ const restoreOriginalSAMState = async (originalPoints: Array<{ x: number, y: num
     ctx.drawImage(image, 0, 0)
 
     const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85)
+    if (!imageDataUrl || typeof imageDataUrl !== 'string') {
+      throw new Error('无法生成图片数据')
+    }
     const base64Data = imageDataUrl.split(',')[1]
+    if (!base64Data) {
+      throw new Error('无法提取base64数据')
+    }
 
     await loadImageToSAM(base64Data)
 
@@ -2028,6 +2172,42 @@ const initSmartCutoutCanvas = async () => {
 
   console.log('🔧 [智能抠图] Canvas初始化完成')
 }
+const resizeImageToSquare1024 = (imageUrl: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      // 计算缩放
+      const canvas = document.createElement('canvas');
+      canvas.width = 1024;
+      canvas.height = 1024;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject('no ctx');
+      // 填充白底或透明
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, 1024, 1024);
+      // 按最长边等比缩放居中
+      const scale = Math.min(1024 / img.width, 1024 / img.height);
+      const w = img.width * scale, h = img.height * scale;
+      const x = (1024 - w) / 2, y = (1024 - h) / 2;
+      ctx.drawImage(img, x, y, w, h);
+      // 输出
+      const dataUrl = canvas.toDataURL('image/png');
+      if (!dataUrl || typeof dataUrl !== 'string') {
+        reject(new Error('无法生成图片数据'));
+        return;
+      }
+      const base64Data = dataUrl.split(',')[1];
+      if (!base64Data) {
+        reject(new Error('无法提取base64数据'));
+        return;
+      }
+      resolve(base64Data);
+    };
+    img.onerror = reject;
+    img.src = imageUrl;
+  });
+};
 
 
 // 将图片转换为base64，并自动应用智能缩放
@@ -2037,18 +2217,33 @@ const imageToBase64 = (imageUrl: string): Promise<string> => {
     const img = new Image()
     img.crossOrigin = 'anonymous'
     img.onload = () => {
+      // 步骤1：新建1024x1024画布
       const canvas = document.createElement('canvas')
       const ctx = canvas.getContext('2d')
       if (!ctx) {
         reject(new Error('无法创建canvas上下文'))
         return
       }
+      const targetSize = 1024
+      canvas.width = targetSize
+      canvas.height = targetSize
 
-      // 直接使用原始尺寸，不做智能缩放
-      canvas.width = img.width
-      canvas.height = img.height
-      ctx.drawImage(img, 0, 0)
+      // 步骤2：算目标宽高比例，居中填充
+      let [sx, sy, sw, sh, dx, dy, dw, dh] = [0, 0, img.width, img.height, 0, 0, targetSize, targetSize]
+      const scale = Math.min(targetSize / img.width, targetSize / img.height)
+      dw = img.width * scale
+      dh = img.height * scale
+      dx = (targetSize - dw) / 2
+      dy = (targetSize - dh) / 2
 
+      // 步骤3：白色底，保证透明图为白底
+      ctx.fillStyle = "#fff"
+      ctx.fillRect(0, 0, targetSize, targetSize)
+
+      // 步骤4：把原图绘制到画布里，自动等比缩放并居中
+      ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
+
+      // 步骤5：输出base64字符串
       const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1]
       resolve(base64)
     }
@@ -2330,157 +2525,130 @@ const handleMouseUp = () => {
 }
 
 // 上传编辑后的图片到服务器
-const uploadEditedImage = (base64Image: string): Promise<{ url: string; id?: number }> => {
+const uploadEditedImage = (input: string | File): Promise<{ url: string; id?: number }> => {
   return new Promise((resolve, reject) => {
-    // 检查用户是否已登录
+    // 登录校验
     if (!isUserLoggedIn()) {
       ElMessageBox.confirm(
         '您需要登录才能保存图片。是否现在登录？',
         '未登录提示',
-        {
-          confirmButtonText: '去登录',
-          cancelButtonText: '取消',
-          type: 'warning'
-        }
+        { confirmButtonText: '去登录', cancelButtonText: '取消', type: 'warning' }
       ).then(() => {
-        // 保存当前页面路径，登录后可以返回
         localStorage.setItem('redirectAfterLogin', router.currentRoute.value.fullPath)
-        // 导航到登录页
         router.push('/login')
       }).catch(() => {
         ElMessage.info('您可以继续使用本地编辑功能，但无法保存到服务器')
       })
-
-      // 仍然返回本地图片以保持编辑效果
-      resolve({ url: base64Image })
+      // 直接本地回显
+      if (typeof input === 'string') {
+        resolve({ url: input })
+      } else {
+        // 如果是File对象，转换为data URL
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          resolve({ url: e.target?.result as string })
+        }
+        reader.readAsDataURL(input)
+      }
       return
     }
 
-    // 将base64转换为文件对象
-    const byteString = atob(base64Image.split(',')[1])
-    const mimeString = base64Image.split(',')[0].split(':')[1].split(';')[0]
-    const ab = new ArrayBuffer(byteString.length)
-    const ia = new Uint8Array(ab)
-    for (let i = 0; i < byteString.length; i++) {
-      ia[i] = byteString.charCodeAt(i)
-    }
-    const blob = new Blob([ab], { type: mimeString })
-    const file = new File([blob], `edited_image_${Date.now()}.png`, { type: 'image/png' })
-
-    const loading = ElLoading.service({
-      lock: true,
-      text: '保存图片中...',
-      background: 'rgba(0, 0, 0, 0.7)'
-    })
-
-    // 检查文件大小，如果超过5MB则压缩
-    if (file.size > 5 * 1024 * 1024) {
-      compressImage(file).then(compressedFile => {
-        doUpload(compressedFile)
-      }).catch(err => {
-        ElMessage.error('图片压缩失败：' + err.message)
-        loading.close()
-        reject(err)
-      })
+    // 处理输入参数
+    let file: File
+    if (input instanceof File) {
+      // 如果已经是File对象，直接使用
+      file = input
     } else {
-      doUpload(file)
-    }
+      // 如果是base64字符串，转换为File对象
+      function base64toFile(base64: string) {
+        if (!base64 || typeof base64 !== 'string') {
+          throw new Error('无效的base64数据')
+        }
 
+        // 检查是否包含data URL前缀
+        const base64Data = base64.includes(',') ? base64.split(',')[1] : base64
+        if (!base64Data) {
+          throw new Error('无法提取base64数据')
+        }
+
+        const byteString = atob(base64Data)
+        const mimeString = base64.includes(',') ? base64.split(',')[0].split(':')[1].split(';')[0] : 'image/png'
+        const ab = new ArrayBuffer(byteString.length)
+        const ia = new Uint8Array(ab)
+        for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i)
+        return new File([ab], `edited_image_${Date.now()}.png`, { type: mimeString })
+      }
+
+      file = base64toFile(input)
+    }
+    const loading = ElLoading.service({ lock: true, text: '保存图片中...', background: 'rgba(0,0,0,0.7)' })
+
+    // 如果大文件压缩
     function doUpload(fileToUpload: File) {
-      // 上传文件
       uploadImage(fileToUpload)
         .then((response: any) => {
           if (response.code === 0 || response.code === 200) {
             const imageData = response.data as UploadImageResponse
-
-            // 保存图片ID
             const imageId = imageData.id
-
-            // 获取图片URL
-            return feedbackImage(imageId).then(feedbackResponse => {
-              // 返回包含图片ID的对象和直接从反馈接口获取的URL
-              return {
-                feedbackResponse,
-                imageId,
-                directUrl: feedbackResponse.data // 直接保存从服务器返回的Blob URL
-              }
-            })
+            return feedbackImage(imageId).then(feedbackResponse => ({
+              url: feedbackResponse.data,
+              id: imageId,
+            }))
           } else {
-            // 如果是数据库编码错误，我们仍然使用本地图片
+            // 401登录失效
             if (response.code === 423) {
-              console.warn('上传成功但服务器日志记录失败，使用本地图片预览')
-              const localUrl = URL.createObjectURL(fileToUpload)
-              resolve({ url: localUrl })
               ElMessage.warning('图片已保存但可能无法从服务器获取，使用本地预览')
+              resolve({ url: URL.createObjectURL(fileToUpload) })
               return Promise.reject(new Error('server_log_error'))
             } else if (response.code === 401) {
-              // 登录已过期或无效
               ElMessageBox.confirm(
                 '您的登录已过期，需要重新登录。是否现在登录？',
                 '登录过期',
-                {
-                  confirmButtonText: '去登录',
-                  cancelButtonText: '取消',
-                  type: 'warning'
-                }
+                { confirmButtonText: '去登录', cancelButtonText: '取消', type: 'warning' }
               ).then(() => {
-                // 清除无效的token
                 localStorage.removeItem('token')
-                // 保存当前页面路径，登录后可以返回
                 localStorage.setItem('redirectAfterLogin', router.currentRoute.value.fullPath)
-                // 导航到登录页
                 router.push('/login')
               }).catch(() => {
                 ElMessage.info('您可以继续使用本地编辑功能，但无法保存到服务器')
               })
-
-              // 仍然返回本地图片
               resolve({ url: base64Image })
               return Promise.reject(new Error('login_required'))
             }
             throw new Error(response.msg || '上传失败')
           }
         })
-        .then((result: any) => {
-          if (result.feedbackResponse.code === 0 || result.feedbackResponse.code === 200) {
-            // 使用从服务器返回的URL对象
-            const imageUrl = result.directUrl
-            // 如果URL是blob对象，直接使用
-            resolve({ url: imageUrl, id: result.imageId })
-            ElMessage.success('图片保存成功')
-          } else {
-            throw new Error(result.feedbackResponse.msg || '获取图片地址失败')
-          }
+        .then(({ url, id }) => {
+          resolve({ url, id })
+          ElMessage.success('图片保存成功')
         })
         .catch((error: any) => {
-          if (error.message === 'server_log_error' || error.message === 'login_required') {
-            // 已经处理过了，不需要额外显示错误
+          if (
+            error.message === 'server_log_error' ||
+            error.message === 'login_required'
+          ) {
             return
           }
-
-          console.error('图片保存失败:', error)
-          // 如果是网络错误，提供更详细的错误信息
-          if (error.message.includes('Network Error') || error.message.includes('timeout')) {
-            ElMessage.error({
-              message: '网络连接失败，请检查网络设置',
-              duration: 5000
-            })
-          } else {
-            ElMessage.error({
-              message: '图片保存失败: ' + (error.message || '未知错误'),
-              duration: 5000
-            })
-          }
-          reject(error)
+          ElMessage.error('图片保存失败: ' + (error.message || '未知错误'))
+          resolve({ url: base64Image })
         })
+        .finally(() => loading.close())
+    }
 
-      // 使用setTimeout确保loading最终会关闭
-      setTimeout(() => {
-        loading.close()
-      }, 1000)
+    if (file.size > 5 * 1024 * 1024) {
+      compressImage(file)
+        .then(compressed => doUpload(compressed))
+        .catch(err => {
+          ElMessage.error('图片压缩失败：' + err.message)
+          loading.close()
+          resolve({ url: base64Image })
+        })
+    } else {
+      doUpload(file)
     }
   })
 }
+
 
 // 压缩图片函数
 const compressImage = (file: File): Promise<File> => {
@@ -3863,7 +4031,13 @@ const addSmartCutoutPoint = async (x: number, y: number, type: 'foreground' | 'b
       ctx.drawImage(image, 0, 0)
 
       const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85)
+      if (!imageDataUrl || typeof imageDataUrl !== 'string') {
+        throw new Error('无法生成图片数据')
+      }
       const base64Data = imageDataUrl.split(',')[1]
+      if (!base64Data) {
+        throw new Error('无法提取base64数据')
+      }
 
       await loadImageToSAM(base64Data)
       isImageLoadedToSAM.value = true
@@ -4396,16 +4570,44 @@ const downloadImage = (url: string, filename: string) => {
 
 // 将dataURL转换为Blob对象
 const dataURLtoBlob = (dataURL: string) => {
-  const parts = dataURL.split(';base64,')
-  const contentType = parts[0].split(':')[1]
-  const raw = window.atob(parts[1])
-  const uInt8Array = new Uint8Array(raw.length)
-
-  for (let i = 0; i < raw.length; ++i) {
-    uInt8Array[i] = raw.charCodeAt(i)
+  // 验证输入参数
+  if (!dataURL || typeof dataURL !== 'string') {
+    throw new Error('无效的dataURL参数')
   }
 
-  return new Blob([uInt8Array], { type: contentType })
+  // 检查是否为有效的data URL格式
+  if (!dataURL.startsWith('data:')) {
+    throw new Error('不是有效的data URL格式')
+  }
+
+  // 检查是否包含base64标识
+  if (!dataURL.includes(';base64,')) {
+    throw new Error('不是有效的base64 data URL格式')
+  }
+
+  try {
+    const parts = dataURL.split(';base64,')
+    if (parts.length !== 2) {
+      throw new Error('data URL格式错误')
+    }
+
+    const contentType = parts[0].split(':')[1]
+    if (!contentType) {
+      throw new Error('无法获取内容类型')
+    }
+
+    const raw = window.atob(parts[1])
+    const uInt8Array = new Uint8Array(raw.length)
+
+    for (let i = 0; i < raw.length; ++i) {
+      uInt8Array[i] = raw.charCodeAt(i)
+    }
+
+    return new Blob([uInt8Array], { type: contentType })
+  } catch (error) {
+    console.error('dataURLtoBlob转换失败:', error)
+    throw new Error('data URL转换为Blob失败: ' + error.message)
+  }
 }
 
 
@@ -6757,12 +6959,12 @@ const updatePointMarkersScale = () => {
   object-fit: contain !important;
 }
 
-/* 确保图片绝对不会超出容器 */
+/* 智能抠图图片显示为实际尺寸1024x1024 */
 .smart-cutout-modal-layout .smart-cutout-image {
-  max-width: calc(100% - 40px) !important;
-  max-height: calc(100% - 40px) !important;
-  width: auto !important;
-  height: auto !important;
+  width: 1024px !important;
+  height: 1024px !important;
+  max-width: none !important;
+  max-height: none !important;
   object-fit: contain !important;
   display: block !important;
   margin: 0 auto !important;
@@ -6953,28 +7155,22 @@ const updatePointMarkersScale = () => {
   box-sizing: border-box !important;
 }
 
-/* 确保图片绝对不会超出容器 */
+/* 智能抠图图片固定显示为1024x1024尺寸 */
 .smart-cutout-modal-layout .smart-cutout-image {
-  max-width: calc(100% - 40px) !important;
-  max-height: calc(100% - 160px) !important;
-  width: auto !important;
-  height: auto !important;
+  width: 1024px !important;
+  height: 1024px !important;
+  max-width: none !important;
+  max-height: none !important;
   object-fit: contain !important;
   display: block !important;
   margin: 0 auto !important;
-}
-
-/* 修复智能抠图图片显示问题 - 增加可用高度 */
-.smart-cutout-modal-layout .smart-cutout-image {
-  max-height: calc(100vh - 200px) !important;
-  height: auto !important;
-  width: auto !important;
-  object-fit: contain !important;
+  box-sizing: border-box !important;
 }
 
 .smart-cutout-modal-layout .smart-cutout-main {
-  min-height: calc(100vh - 200px) !important;
-  max-height: calc(100vh - 200px) !important;
+  min-height: 1100px !important;
+  max-height: none !important;
+  height: auto !important;
 }
 
 /* 最终解决方案 - 强制限制所有智能抠图相关元素 */
