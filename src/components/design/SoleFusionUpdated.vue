@@ -2,8 +2,8 @@
 
 <script setup lang="ts">
 // 导入新的AI任务助手
-import { executeSoleFusion } from '@/utils/aiTaskHelper'
-import { useShoeStore } from '@/store'
+import { executeSoleFusion } from '../../utils/aiTaskHelper'
+import { useShoeStore } from '../../store'
 
 const shoeStore = useShoeStore()
 

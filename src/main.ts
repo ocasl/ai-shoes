@@ -18,6 +18,12 @@ app.use(ElementPlus, {
 app.use(router)
 
 // 使用Pinia状态管理
-app.use(createPinia())
+const pinia = createPinia()
+app.use(pinia)
+
+// 初始化用户状态
+import { useUserStore } from './store/user'
+const userStore = useUserStore()
+userStore.initializeFromStorage()
 
 app.mount('#app')

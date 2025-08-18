@@ -138,7 +138,7 @@ import { useRouter } from 'vue-router'
 import type { FormInstance } from 'element-plus'
 import { ElMessage } from 'element-plus'
 import { User, Lock, UserFilled, Iphone, Key, Message } from '@element-plus/icons-vue'
-import { register, sendSmsCode } from '../api/user'
+import { registerUser, sendSmsCode } from '../api/user'
 
 const router = useRouter()
 const registerFormRef = ref<FormInstance>()
@@ -249,7 +249,7 @@ const handleRegister = async () => {
 
     // 调用注册接口
     const { confirmPassword, agreement, ...registerData } = registerForm
-    await register(registerData)
+    await registerUser(registerData)
     
     ElMessage.success('注册成功')
     router.push('/login')

@@ -147,6 +147,55 @@
 
           <!-- 右侧面板 -->
           <div class="right-panel">
+            <!-- 材质选择区域 -->
+            <div class="step-section">
+              <div class="step-header">
+                <span class="step-title">Step 3</span>
+                <span class="step-desc">材质参考</span>
+                <el-tooltip content="选择材质作为配色参考" placement="top">
+                  <el-icon><QuestionFilled /></el-icon>
+                </el-tooltip>
+              </div>
+              
+              <div class="material-section">
+                <!-- 已选择的材质 -->
+                <div v-if="selectedMaterial" class="selected-material">
+                  <div class="material-preview">
+                    <img :src="selectedMaterial.ossPath" :alt="selectedMaterial.name" class="material-thumb" />
+                    <div class="material-info">
+                      <div class="material-name">{{ selectedMaterial.name }}</div>
+                      <div class="material-type">{{ selectedMaterial.type === 0 ? '系统材质' : '用户材质' }}</div>
+                    </div>
+                    <el-button
+                      circle
+                      size="small"
+                      type="danger"
+                      :icon="Close"
+                      @click="clearMaterial"
+                      title="移除材质"
+                    />
+                  </div>
+                </div>
+                
+                <!-- 材质选择按钮 -->
+                <div v-else class="material-selector">
+                  <el-button
+                    type="primary"
+                    :icon="Collection"
+                    @click="showMaterialSelector = true"
+                    class="select-material-btn"
+                  >
+                    选择材质参考
+                  </el-button>
+                  <div class="material-hint">
+                    <el-text size="small" type="info">
+                      材质参考可以影响配色的质感效果
+                    </el-text>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- 生成按钮 -->
             <el-button 
               type="primary" 
@@ -322,6 +371,14 @@
             </div>
             <div style="margin-top:8px;color:#222;text-align:center;">缩放：{{ (zoomReference * 100).toFixed(0) }}%</div>
           </el-dialog>
+
+          <!-- 材质选择器弹窗 -->
+          <MaterialSelector
+            v-model:visible="showMaterialSelector"
+            :multiple="false"
+            @select="handleMaterialSelect"
+            @cancel="showMaterialSelector = false"
+          />
         </div>
       </div>
     </div>
@@ -330,7 +387,7 @@
 
 <script setup lang="ts">
 import { ref, defineAsyncComponent, computed, onMounted, watch, onUnmounted } from 'vue'
-import { Plus, QuestionFilled, Check, Loading, ZoomIn } from '@element-plus/icons-vue'
+import { Plus, QuestionFilled, Check, Loading, ZoomIn, Close, Collection } from '@element-plus/icons-vue'
 import { ElMessage, ElLoading, ElMessageBox } from 'element-plus'
 import type { UploadInstance } from 'element-plus'
 import { uploadImage, feedbackImage, pcxh, } from '../../api/file'
@@ -342,6 +399,11 @@ import { startAiTaskWs, stopAiTaskWs } from '../../utils/wsTask'
 // 异步引入图片工作区组件
 const ImageWorkspaceComp = defineAsyncComponent(() => 
   import('../design/ImageWorkspace.vue')
+)
+
+// 异步加载材质选择器组件
+const MaterialSelector = defineAsyncComponent(() => 
+  import('../material/MaterialSelector.vue')
 )
 
 // 获取路由器
@@ -394,6 +456,24 @@ const zoomReference = ref(1)
 
 // 新增：跟踪是否正在处理颜色修改任务
 const isProcessingColorChangeTask = ref(false)
+
+// 材质选择相关状态
+const showMaterialSelector = ref(false)
+const selectedMaterial = ref<any>(null)
+
+// 材质选择处理方法
+const handleMaterialSelect = (materials: any[]) => {
+  if (materials && materials.length > 0) {
+    selectedMaterial.value = materials[0] // 单选模式，取第一个
+    ElMessage.success(`已选择材质参考: ${selectedMaterial.value.name}`)
+  }
+  showMaterialSelector.value = false
+}
+
+const clearMaterial = () => {
+  selectedMaterial.value = null
+  ElMessage.info('已移除材质参考')
+}
 
 // 计算属性 - 需要主图和副图都上传才能生成
 const canGenerate = computed(() => {

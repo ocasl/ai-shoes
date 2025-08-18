@@ -191,6 +191,54 @@
 
       <!-- 右侧面板 -->
       <div class="right-panel">
+        <!-- 材质选择区域 -->
+        <div class="material-section">
+          <div class="section-header">
+            <span class="section-title">材质选择</span>
+            <el-tooltip content="为鞋款添加材质效果" placement="top">
+              <el-icon><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </div>
+          
+          <div class="material-content">
+            <!-- 已选择的材质 -->
+            <div v-if="selectedMaterial" class="selected-material">
+              <div class="material-preview">
+                <img :src="selectedMaterial.ossPath" :alt="selectedMaterial.name" class="material-thumb" />
+                <div class="material-info">
+                  <div class="material-name">{{ selectedMaterial.name }}</div>
+                  <div class="material-type">{{ selectedMaterial.type === 0 ? '系统材质' : '用户材质' }}</div>
+                </div>
+                <el-button
+                  circle
+                  size="small"
+                  type="danger"
+                  :icon="Close"
+                  @click="clearMaterial"
+                  title="移除材质"
+                />
+              </div>
+            </div>
+            
+            <!-- 材质选择按钮 -->
+            <div v-else class="material-selector">
+              <el-button
+                type="primary"
+                :icon="Collection"
+                @click="showMaterialSelector = true"
+                class="select-material-btn"
+              >
+                选择材质
+              </el-button>
+              <div class="material-hint">
+                <el-text size="small" type="info">
+                  选择材质可以增强鞋款的真实感
+                </el-text>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 生成按钮 -->
         <el-button type="primary" class="generate-btn" @click="handleGenerate" :disabled="!canGenerate">
           {{ shoeStore.aiTaskStatus === 'running' ? '生成中...' : '立即生成' }}
@@ -366,6 +414,14 @@
     </div>
     <div style="margin-top:8px;color:#fff;text-align:center;">缩放：{{ (zoomReference * 100).toFixed(0) }}%</div>
   </el-dialog>
+
+  <!-- 材质选择器弹窗 -->
+  <MaterialSelector
+    v-model:visible="showMaterialSelector"
+    :multiple="false"
+    @select="handleMaterialSelect"
+    @cancel="showMaterialSelector = false"
+  />
 </template>
 
 <script setup lang="ts">
@@ -377,11 +433,18 @@ import {
   Check,
   EditPen,
   ZoomIn,
+  Close,
+  Collection,
 } from "@element-plus/icons-vue";
 
 // Import the component
 const SelectionOptionsDialog = defineAsyncComponent(
   () => import("../common/SelectionOptionsDialog.vue")
+);
+
+// Import material selector component
+const MaterialSelector = defineAsyncComponent(
+  () => import("../material/MaterialSelector.vue")
 );
 
 import type { UploadInstance } from "element-plus";
@@ -466,6 +529,24 @@ const editDialogWorkspaceRef = ref<any>(null);
 // creativeImg 相关状态
 const isCreativeImgMode = ref(false)
 const creativeImgFile = ref<File | null>(null)
+
+// 材质选择相关状态
+const showMaterialSelector = ref(false)
+const selectedMaterial = ref<any>(null)
+
+// 材质选择处理方法
+const handleMaterialSelect = (materials: any[]) => {
+  if (materials && materials.length > 0) {
+    selectedMaterial.value = materials[0] // 单选模式，取第一个
+    ElMessage.success(`已选择材质: ${selectedMaterial.value.name}`)
+  }
+  showMaterialSelector.value = false
+}
+
+const clearMaterial = () => {
+  selectedMaterial.value = null
+  ElMessage.info('已移除材质选择')
+}
 
 // 放大预览相关状态
 const showZoomDialogMain = ref(false);

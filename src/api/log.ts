@@ -1,4 +1,4 @@
-import axios from 'axios'
+import request from '../utils/request'
 
 // API响应类型
 interface ApiResponse<T = any> {
@@ -83,11 +83,5 @@ export function getComfyuiLogs(params: ComfyuiLogQueryParams) {
   })
 
   // 发送请求
-  return axios.get(`/api/comfyui/logs?${queryParams.toString()}`, {
-    headers: {
-      'Authorization': bearerToken,
-      'token': bearerToken,
-      'Content-Type': 'application/json'
-    }
-  }).then(response => response.data)
+  return request.get(`/comfyui/logs?${queryParams.toString()}`).then(response => response.data)
 } 

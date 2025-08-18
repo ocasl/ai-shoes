@@ -129,6 +129,42 @@
               </div>
             </router-link>
 
+            <!-- 材质库卡片 -->
+            <router-link to="/materials" class="design-card material-library-card">
+              <div class="card-images">
+                <div class="material-grid-preview">
+                  <div class="material-item">
+                    <div class="material-sample leather"></div>
+                    <span>皮革</span>
+                  </div>
+                  <div class="material-item">
+                    <div class="material-sample fabric"></div>
+                    <span>布料</span>
+                  </div>
+                  <div class="material-item">
+                    <div class="material-sample rubber"></div>
+                    <span>橡胶</span>
+                  </div>
+                  <div class="material-item">
+                    <div class="material-sample metal"></div>
+                    <span>金属</span>
+                  </div>
+                  <div class="material-item">
+                    <div class="material-sample plastic"></div>
+                    <span>塑料</span>
+                  </div>
+                  <div class="material-item">
+                    <div class="material-sample more"></div>
+                    <span>更多</span>
+                  </div>
+                </div>
+              </div>
+              <div class="card-title">
+                <h3>材质库</h3>
+                <p>管理和应用各种材质纹理</p>
+              </div>
+            </router-link>
+
 
             <!-- <div class="design-card">
               <div class="card-images">
@@ -595,6 +631,99 @@
     color: #c8ad7f;
     font-size: 16px;
     font-weight: 500;
+  }
+
+  /* 材质库卡片样式 */
+  .material-library-card .card-images {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  }
+
+  .material-grid-preview {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 8px;
+    padding: 15px;
+    height: 100%;
+  }
+
+  .material-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: transform 0.3s ease;
+  }
+
+  .material-item:hover {
+    transform: scale(1.1);
+  }
+
+  .material-sample {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+  }
+
+  .material-sample.leather {
+    background: linear-gradient(45deg, #8B4513 0%, #A0522D 50%, #CD853F 100%);
+    background-image: 
+      radial-gradient(circle at 20% 20%, rgba(139, 69, 19, 0.3) 2px, transparent 2px),
+      radial-gradient(circle at 80% 80%, rgba(160, 82, 45, 0.3) 1px, transparent 1px);
+  }
+
+  .material-sample.fabric {
+    background: linear-gradient(90deg, #E6E6FA 0%, #D8BFD8 50%, #DDA0DD 100%);
+    background-image: 
+      repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.3) 2px, rgba(255,255,255,0.3) 4px);
+  }
+
+  .material-sample.rubber {
+    background: linear-gradient(135deg, #2F4F4F 0%, #708090 50%, #778899 100%);
+    background-image: 
+      radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  }
+
+  .material-sample.metal {
+    background: linear-gradient(135deg, #C0C0C0 0%, #A9A9A9 25%, #808080 50%, #696969 75%, #C0C0C0 100%);
+    background-image: 
+      linear-gradient(90deg, rgba(255,255,255,0.2) 50%, transparent 50%);
+    background-size: 4px 4px;
+  }
+
+  .material-sample.plastic {
+    background: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 50%, #45B7D1 100%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  .material-sample.more {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+  }
+
+  .material-sample.more::before {
+    content: '+';
+  }
+
+  .material-item span {
+    font-size: 10px;
+    color: #666;
+    font-weight: 500;
+    text-align: center;
+  }
+
+  .design-card:hover .material-sample {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   }
   </style>
 

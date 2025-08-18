@@ -151,7 +151,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Upload, Delete, Refresh, Download, Loading } from '@element-plus/icons-vue'
-import { uploadImage } from '@/api/file'
+import { uploadImage } from '../../api/file'
 
 // 响应式数据
 const originalImage = ref('')
@@ -202,10 +202,24 @@ const handleImageUpload = async (file) => {
       // 读取图片并显示
       const reader = new FileReader()
       reader.onload = async (e) => {
-        originalImage.value = e.target.result
-        await loadImageToSAM(e.target.result)
-        drawImageOnCanvas()
+        const result = e.target?.result
+        console.log('FileReader result type:', typeof result)
+        console.log('FileReader result preview:', result ? result.toString().substring(0, 100) + '...' : 'null')
+        
+        if (result && typeof result === 'string') {
+          originalImage.value = result
+          await loadImageToSAM(result)
+          drawImageOnCanvas()
+        } else {
+          throw new Error('图片读取失败：无效的数据格式')
+        }
       }
+      
+      reader.onerror = (e) => {
+        console.error('FileReader error:', e)
+        throw new Error('文件读取失败')
+      }
+      
       reader.readAsDataURL(file)
 
       ElMessage.success('图片上传成功')
@@ -227,29 +241,103 @@ const loadImageToSAM = async (imageDataUrl) => {
   try {
     processingMessage.value = '正在加载图片到AI模型...'
 
+    // 验证输入参数
+    if (!imageDataUrl || typeof imageDataUrl !== 'string') {
+      throw new Error('无效的图片数据格式')
+    }
+
+    // 检查是否为有效的data URL格式
+    if (!imageDataUrl.startsWith('data:image/')) {
+      throw new Error('不是有效的图片数据URL')
+    }
+
     // 提取base64数据
     const base64Data = imageDataUrl.split(',')[1]
+    
+    if (!base64Data) {
+      throw new Error('无法提取base64数据')
+    }
 
-    const response = await fetch(`${SAM_API_BASE}/load_image`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        image: base64Data,
-        max_size: 1024,
-        quality: 85
+    console.log('Base64 data length:', base64Data.length)
+    console.log('Base64 data preview:', base64Data.substring(0, 50) + '...')
+    
+    // 验证base64格式
+    const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/
+    if (!base64Regex.test(base64Data)) {
+      throw new Error('无效的base64数据格式')
+    }
+
+    // 检查SAM服务器健康状态
+    try {
+      console.log('检查SAM服务器健康状态...')
+      const healthResponse = await fetch(`${SAM_API_BASE}/health`, {
+        method: 'GET'
       })
-    })
 
-    const result = await response.json()
+      if (healthResponse.ok) {
+        const healthData = await healthResponse.json()
+        console.log('SAM服务器健康检查通过', healthData)
+      } else {
+        console.warn('SAM服务器健康检查失败', {
+          状态码: healthResponse.status,
+          状态文本: healthResponse.statusText
+        })
+      }
+    } catch (healthError) {
+      console.error('SAM服务器健康检查异常', healthError)
+      throw new Error('SAM服务器不可用，请检查服务器状态')
+    }
 
-    if (result.success) {
-      imageInfo.value.width = result.image_size.width
-      imageInfo.value.height = result.image_size.height
-      ElMessage.success('图片已加载到AI模型')
-    } else {
-      throw new Error(result.error || '加载失败')
+    const requestData = {
+      image: base64Data,
+      max_size: 1024
+    }
+
+    console.log('发送加载图像请求到SAM API:', `${SAM_API_BASE}/load_image`)
+    console.log('请求数据大小:', JSON.stringify(requestData).length)
+    
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => {
+      console.error('SAM API请求超时')
+      controller.abort()
+    }, 60000)
+
+    try {
+      const response = await fetch(`${SAM_API_BASE}/load_image`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+
+      console.log('SAM API响应状态:', response.status, response.statusText)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('SAM API加载图像失败:', {
+          状态码: response.status,
+          错误内容: errorText
+        })
+        throw new Error(`加载图像到SAM失败 (${response.status}): ${errorText}`)
+      }
+
+      const result = await response.json()
+      console.log('SAM API响应结果:', result)
+
+      if (result.success) {
+        imageInfo.value.width = result.image_size.width
+        imageInfo.value.height = result.image_size.height
+        ElMessage.success('图片已加载到AI模型')
+      } else {
+        throw new Error(result.error || result.message || '加载失败')
+      }
+    } catch (fetchError) {
+      clearTimeout(timeoutId)
+      throw fetchError
     }
   } catch (error) {
     console.error('加载图片到SAM失败:', error)

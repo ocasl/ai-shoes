@@ -145,7 +145,7 @@ import { EditPen, Lock, User } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance } from 'element-plus'
-import { sendSmsCode, smsLogin, passwordLogin } from '../api/user'
+import { sendSmsCode, smsLogin, loginUser as passwordLogin } from '../api/user'
 
 // 路由实例
 const router = useRouter()

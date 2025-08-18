@@ -261,18 +261,7 @@
               @mousemove.prevent="handleBrushing" @mouseup.prevent="stopBrushing" @mouseleave="stopBrushing"></canvas>
 
             <!-- 调试信息 -->
-            <div
-              style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; z-index: 1000; font-size: 12px;">
-              <div>当前工具: {{ currentTool }}</div>
-              <div>涂抹模式: {{ isBrushing }}</div>
-              <div>正在绘制: {{ isPainting }}</div>
-              <div>画笔大小: {{ brushSize }}</div>
-              <div>Canvas存在: {{ !!brushCanvasRef }}</div>
-              <div>上下文存在: {{ !!brushContext }}</div>
-              <div v-if="brushCanvasRef">Canvas尺寸: {{ brushCanvasRef.width }}x{{ brushCanvasRef.height }}</div>
-              <div v-if="brushImageRef">图片尺寸: {{ brushImageRef.offsetWidth }}x{{ brushImageRef.offsetHeight }}</div>
-            </div>
-
+      
             <!-- 涂抹工具控制栏 -->
             <div class="brush-controls">
               <div class="brush-size-control">
@@ -358,32 +347,7 @@
                     @contextmenu="handleSmartCutoutRightClick" @mousemove="handleSmartCutoutHover"
                     @mouseleave="clearHoverPreview"></canvas>
 
-                  <!-- 智能抠图调试信息 -->
-                  <div
-                    style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; z-index: 1000; font-size: 12px; border-radius: 4px;">
-                    <div>当前工具: {{ currentTool }}</div>
-                    <div>智能抠图模式: {{ isSmartCutoutMode }}</div>
-                    <div>SAM已加载: {{ isImageLoadedToSAM }}</div>
-                    <div>TaskID: {{ samTaskId || '无' }}</div>
-                    <div>Canvas存在: {{ !!smartCutoutCanvasRef }}</div>
-                    <div>图片存在: {{ !!smartCutoutImageRef }}</div>
-                    <div v-if="smartCutoutCanvasRef">Canvas尺寸: {{ smartCutoutCanvasRef.width }}x{{
-                      smartCutoutCanvasRef.height }}</div>
-                    <div v-if="smartCutoutImageRef">图片原始尺寸: {{ smartCutoutImageRef.naturalWidth }}x{{
-                      smartCutoutImageRef.naturalHeight }}</div>
-                    <div v-if="smartCutoutImageRef">图片显示尺寸: {{ smartCutoutImageRef.offsetWidth }}x{{
-                      smartCutoutImageRef.offsetHeight }}</div>
-                    <div v-if="smartCutoutImageRef">CSS宽度: {{ getImageCSSWidth() }}</div>
-                    <div v-if="smartCutoutImageRef">CSS高度: {{ getImageCSSHeight() }}</div>
-                    <div v-if="smartCutoutImageRef">CSS最大宽度: {{ getImageCSSMaxWidth() }}</div>
-                    <div v-if="smartCutoutImageRef">CSS最大高度: {{ getImageCSSMaxHeight() }}</div>
-                    <div>CSS缩放: {{ Math.round(smartCutoutZoom * 100) }}%</div>
-                    <div>点击点数量: {{ smartCutoutPoints.length }}</div>
-                    <div>前景点: {{smartCutoutPoints.filter(p => p.type === 'foreground').length}}</div>
-                    <div>背景点: {{smartCutoutPoints.filter(p => p.type === 'background').length}}</div>
-                    <div>有蒙版: {{ !!smartCutoutMask }}</div>
-                    <div>悬浮预览: {{ isHovering }}</div>
-                  </div>
+           
 
                   <!-- 悬浮预览层 -->
                   <canvas v-if="isHovering && hoverPreviewMask" class="hover-preview-canvas"
@@ -529,6 +493,21 @@ const isPainting = ref(false)
 const brushContext = ref<CanvasRenderingContext2D | null>(null)
 
 const isViewingResults = ref(props.isViewResults || false)
+
+// 添加日志函数
+const logViewingResultsChange = (source: string, newValue: boolean, details?: any) => {
+  console.log(`🔍 [${componentId.value}] isViewingResults 变化:`, {
+    来源: source,
+    新值: newValue,
+    时间: new Date().toISOString(),
+    详情: details || '无',
+    当前状态: {
+      isViewingResults: isViewingResults.value,
+      resultImages: resultImages.value.length,
+      currentSlide: currentSlide.value
+    }
+  })
+}
 const resultImages = ref<string[]>(props.resultImages || [])
 const currentSlide = ref(0)
 // 图片缩放状态
@@ -1632,7 +1611,7 @@ const setupSmartCutoutTool = async () => {
     isSmartCutoutMode.value = true
     isImageLoadedToSAM.value = false
     smartCutoutPoints.value = []
-    smartCutoutMask.value = ''
+    // smartCutoutMask.value = ''
     smartCutoutZoom.value = 1.0
 
     // 转换为base64
@@ -2023,7 +2002,7 @@ const undoSmartCutoutPoint = async () => {
 
     if (smartCutoutPoints.value.length === 0) {
       // 如果没有点了，清除蒙版
-      smartCutoutMask.value = ''
+      // smartCutoutMask.value = ''
       clearCutoutResult()
 
       // 调用SAM清除API
@@ -4454,7 +4433,7 @@ const clearSmartCutoutPoints = async () => {
 
     if (result.success) {
       smartCutoutPoints.value = []
-      smartCutoutMask.value = ''
+      // smartCutoutMask.value = ''
       smartCutoutHistory.value = []
 
       // 清除Canvas
@@ -4657,11 +4636,19 @@ const setSlide = (index: number) => {
 
 // 退出结果查看模式
 const exitResultsView = () => {
+  const oldValue = isViewingResults.value
+  logViewingResultsChange('exitResultsView 函数调用', false, {
+    当前图片数量: resultImages.value.length,
+    当前选中的图片索引: currentSlide.value,
+    当前isViewingResults值: oldValue
+  })
+  
   if (resultImages.value.length > 0) {
     // 使用当前选中的图片
     const selectedImage = resultImages.value[currentSlide.value]
     // 应用到主工作区
     emit('imageEdited', selectedImage)
+    console.log('应用所选图片到主工作区:', selectedImage.substring(0, 50) + '...')
   }
 
   // 重置状态
@@ -4671,6 +4658,14 @@ const exitResultsView = () => {
   // 重置所有图片的缩放级别和位置
   resultImageZoom.value = resultImageZoom.value.map(() => 1)
   resultImagePosition.value = resultImagePosition.value.map(() => ({ x: 0, y: 0 }))
+
+  // 添加日志记录状态重置
+  console.log(`🔍 [${componentId.value}] exitResultsView 状态重置完成:`, {
+    isViewingResults: isViewingResults.value,
+    resultImages重置: resultImages.value.length,
+    resultImageZoom重置: resultImageZoom.value.length,
+    resultImagePosition重置: resultImagePosition.value.length
+  })
 
   // 显示提示
   ElMessage.success('已应用所选图片')
@@ -4692,7 +4687,26 @@ const downloadCurrentImage = () => {
 
 // 监听props变化
 watch(() => props.isViewResults, (newValue) => {
-  isViewingResults.value = newValue
+  const oldValue = isViewingResults.value
+  logViewingResultsChange('props.isViewResults watch', newValue, {
+    旧值: oldValue,
+    新值: newValue,
+    是否需要更新: newValue !== oldValue,
+    调用栈: new Error().stack
+  })
+  
+  if (newValue !== oldValue) {
+    console.log(`🔍 [${componentId.value}] watch 监听器更新 isViewingResults:`, {
+      从: oldValue,
+      到: newValue
+    })
+    isViewingResults.value = newValue
+  } else {
+    console.log(`🔍 [${componentId.value}] watch 监听器跳过更新，值相同:`, {
+      当前值: oldValue,
+      props值: newValue
+    })
+  }
 })
 
 watch(smartCutoutZoom, (newVal) => {
@@ -5345,6 +5359,12 @@ defineExpose({
   editedImageInfo,  // 暴露编辑后的图片信息
   showResults: (images: string[]) => {
     console.log('ImageWorkspace.showResults被调用，图片数量:', images.length, '图片URL示例:', images.length > 0 ? images[0] : 'none')
+    
+    // 添加日志记录
+    logViewingResultsChange('showResults 方法开始', true, {
+      图片数量: images.length,
+      图片URL示例: images.length > 0 ? images[0].substring(0, 50) + '...' : 'none'
+    })
 
     if (!Array.isArray(images) || images.length === 0) {
       console.warn('showResults接收到空图片数组')
@@ -5395,8 +5415,17 @@ defineExpose({
 
       // 更新组件状态
       resultImages.value = validImages
+      const oldValue = isViewingResults.value
       isViewingResults.value = true
       currentSlide.value = 0
+      
+      // 添加日志记录
+      logViewingResultsChange('showResults 方法更新状态', true, {
+        旧值: oldValue,
+        新值: true,
+        有效图片数量: validImages.length,
+        原始图片数量: images.length
+      })
 
       // 在弹窗显示后强制调整位置
       nextTick(() => {

@@ -146,17 +146,20 @@ const fetchModels = async () => {
       res = await getAllModelsDirectly()
     }
     
-    if (res.code === 0 || res.code === 200) {
-      models.value = res.data || []
+    // 处理axios响应数据结构
+    const responseData = res.data || res
+    
+    if (responseData.code === 0 || responseData.code === 200) {
+      models.value = responseData.data || []
       emit('load-success', models.value)
-    } else if (res.code === 401) {
+    } else if (responseData.code === 401) {
       // 处理401错误
       error.value = true
       errorMessage.value = '请先登录后再使用此功能'
       loginRequired.value = true
       emit('load-error', errorMessage.value)
     } else {
-      throw new Error(res.msg || '获取模型失败')
+      throw new Error(responseData.msg || '获取模型失败')
     }
   } catch (err: any) {
     error.value = true

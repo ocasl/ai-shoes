@@ -1,4 +1,4 @@
-import { post, get, del } from '../utils/request'
+import request from '../utils/request'
 
 // API响应类型
 interface ApiResponse<T = any> {
@@ -75,11 +75,12 @@ export interface SamTaskOperationResponse {
 }
 
 /**
- * SAM服务健康检查
- * @returns Promise<SamHealthResponse> 返回服务状态
+ * SAM分割
+ * @param imageId 图片ID
+ * @returns Promise<SamHealthResponse> 返回分割结果
  */
-export function samHealthCheck(): Promise<SamHealthResponse> {
-  return get('/sam/health')
+export function samSegment(imageId: number): Promise<SamHealthResponse> {
+  return request.post('/sam/segment', { imageId })
 }
 
 /**
@@ -92,7 +93,7 @@ export function samPretreat(imageId: number): Promise<SamPretreatResponse> {
   const formData = new FormData()
   formData.append('id', imageId.toString())
   
-  return post('/sam/pret', formData, {
+  return request.post('/sam/pret', formData, {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded'
     }
@@ -106,7 +107,7 @@ export function samPretreat(imageId: number): Promise<SamPretreatResponse> {
  * @returns Promise<SamCutResponse> 返回分割结果
  */
 export function samCut(request: SamCutRequest): Promise<SamCutResponse> {
-  return post('/sam/cut', request, {
+  return request.post('/sam/cut', request, {
     headers: {
       'Content-Type': 'application/json'
     }
@@ -119,7 +120,7 @@ export function samCut(request: SamCutRequest): Promise<SamCutResponse> {
  * @returns Promise<SamTaskInfoResponse> 返回任务信息
  */
 export function samGetTaskInfo(taskId: string): Promise<SamTaskInfoResponse> {
-  return get(`/sam/task/${taskId}`)
+  return request.get(`/sam/task/${taskId}`)
 }
 
 /**
@@ -128,23 +129,16 @@ export function samGetTaskInfo(taskId: string): Promise<SamTaskInfoResponse> {
  * @returns Promise<SamTaskOperationResponse> 返回操作结果
  */
 export function samDeleteTask(taskId: string): Promise<SamTaskOperationResponse> {
-  return del(`/sam/task/${taskId}`)
+  return request.delete(`/sam/task/${taskId}`)
 }
 
 /**
- * 结束任务
+ * 结束任务 (清除点击点)
  * @param taskId 任务ID
  * @returns Promise<SamTaskOperationResponse> 返回操作结果
  */
 export function samEndTask(taskId: string): Promise<SamTaskOperationResponse> {
-  const formData = new FormData()
-  formData.append('taskId', taskId)
-  
-  return post('/sam/clear', formData, {
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    }
-  })
+  return request.post('/api/clear_points', {})
 }
 
 /**
@@ -293,7 +287,7 @@ export function samInteractiveSegment(imageId: number, points: Array<{
   y: number
   type: 'include' | 'exclude'
 }>): Promise<SamCutResponse> {
-  return post('/sam/interactive-segment', {
+  return request.post('/sam/interactive-segment', {
     imageId,
     points
   }, {

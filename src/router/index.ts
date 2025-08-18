@@ -197,6 +197,15 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/materials',
+    name: 'Materials',
+    component: () => import('../views/Materials.vue'),
+    meta: {
+      title: '材质库 - D-Design鞋款设计平台',
+      requiresAuth: true
+    }
+  },
+  {
     path: '/about',
     name: 'About',
     // 路由级别的代码分割，生成单独的chunk (about.[hash].js)

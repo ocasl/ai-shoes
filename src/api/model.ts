@@ -1,5 +1,4 @@
-import { get } from '../utils/request'
-import axios from 'axios'
+import request from '../utils/request'
 
 // API响应类型
 interface ApiResponse<T = any> {
@@ -23,28 +22,45 @@ export interface Model {
  * @returns Promise 返回模型列表
  */
 export function getAllModels() {
-  // 获取token，检查登录状态
-  const token = localStorage.getItem('token')
-  
-  // 返回请求
-  return get<ApiResponse<Model[]>>('/lore/list')
+  console.log('🔍 开始调用 getAllModels API: /lore/list')
+  return request.get<ApiResponse<Model[]>>('/lore/list')
+    .then(response => {
+      console.log('✅ getAllModels API 响应成功:', response)
+      return response
+    })
+    .catch(error => {
+      console.error('❌ getAllModels API 调用失败:', error)
+      console.error('错误详情:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      })
+      throw error
+    })
 }
 
 /**
- * 使用原生axios查询所有模型
+ * 使用request实例查询所有模型
  * @returns Promise 返回模型列表
  */
 export function getAllModelsDirectly() {
-  const token = localStorage.getItem('token')
-  const bearerToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-  
-  return axios.get('/api/lore/list', {
-    headers: {
-      'Authorization': bearerToken,
-      'token': bearerToken,
-      'Content-Type': 'application/json'
-    }
-  }).then(response => response.data)
+  console.log('🔍 开始调用 getAllModelsDirectly API: /lore/list')
+  return request.get('/lore/list')
+    .then(response => {
+      console.log('✅ getAllModelsDirectly API 响应成功:', response)
+      return response.data
+    })
+    .catch(error => {
+      console.error('❌ getAllModelsDirectly API 调用失败:', error)
+      console.error('错误详情:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      })
+      throw error
+    })
 }
 
 /**

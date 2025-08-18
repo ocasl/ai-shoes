@@ -277,7 +277,8 @@
 
 ```javascript
 {
-  "imageId": 0,
+  "majorId": 0,
+  "minorId": 0,
   "prompt": ""
 }
 ```
@@ -289,7 +290,8 @@
 | 参数名称 | 参数说明 | 请求类型    | 是否必须 | 数据类型 | schema |
 | -------- | -------- | ----- | -------- | -------- | ------ |
 |自动配色|自动配色|body|true|自动配色|自动配色|
-|&emsp;&emsp;imageId|鞋面图||true|integer(int32)||
+|&emsp;&emsp;majorId|主图||true|integer(int32)||
+|&emsp;&emsp;minorId|参考图||true|integer(int32)||
 |&emsp;&emsp;prompt|关键词||false|string||
 
 
@@ -1296,9 +1298,9 @@
   "phone": "",
   "smsCode": "",
   "admin": true,
-  "accountNonLocked": true,
+  "credentialsNonExpired": true,
   "accountNonExpired": true,
-  "credentialsNonExpired": true
+  "accountNonLocked": true
 }
 ```
 
@@ -1328,9 +1330,9 @@
 |&emsp;&emsp;updater|更新人||false|string||
 |&emsp;&emsp;smsCode|短信验证码||false|string||
 |&emsp;&emsp;admin|||false|boolean||
-|&emsp;&emsp;accountNonLocked|||false|boolean||
-|&emsp;&emsp;accountNonExpired|||false|boolean||
 |&emsp;&emsp;credentialsNonExpired|||false|boolean||
+|&emsp;&emsp;accountNonExpired|||false|boolean||
+|&emsp;&emsp;accountNonLocked|||false|boolean||
 
 
 **响应状态**:
@@ -1618,9 +1620,9 @@
 |updater|更新人|string||
 |smsCode|短信验证码|string||
 |admin||boolean||
-|accountNonLocked||boolean||
-|accountNonExpired||boolean||
 |credentialsNonExpired||boolean||
+|accountNonExpired||boolean||
+|accountNonLocked||boolean||
 
 
 **响应示例**:
@@ -1635,9 +1637,9 @@
 		"phone": "",
 		"smsCode": "",
 		"admin": true,
-		"accountNonLocked": true,
+		"credentialsNonExpired": true,
 		"accountNonExpired": true,
-		"credentialsNonExpired": true
+		"accountNonLocked": true
 	}
 ]
 ```
@@ -1775,9 +1777,9 @@
 |updater|更新人|string||
 |smsCode|短信验证码|string||
 |admin||boolean||
-|accountNonLocked||boolean||
-|accountNonExpired||boolean||
 |credentialsNonExpired||boolean||
+|accountNonExpired||boolean||
+|accountNonLocked||boolean||
 
 
 **响应示例**:
@@ -1791,9 +1793,9 @@
 	"phone": "",
 	"smsCode": "",
 	"admin": true,
-	"accountNonLocked": true,
+	"credentialsNonExpired": true,
 	"accountNonExpired": true,
-	"credentialsNonExpired": true
+	"accountNonLocked": true
 }
 ```
 
@@ -1823,188 +1825,6 @@
 | 参数名称 | 参数说明 | 请求类型    | 是否必须 | 数据类型 | schema |
 | -------- | -------- | ----- | -------- | -------- | ------ |
 |id||path|true|integer(int32)||
-
-
-**响应状态**:
-
-
-| 状态码 | 说明 | schema |
-| -------- | -------- | ----- | 
-|200|OK|通用返回对象|
-
-
-**响应参数**:
-
-
-| 参数名称 | 参数说明 | 类型 | schema |
-| -------- | -------- | ----- |----- | 
-|code||integer(int32)|integer(int32)|
-|msg||string||
-|data||object||
-
-
-**响应示例**:
-```javascript
-{
-	"code": 0,
-	"msg": "",
-	"data": {}
-}
-```
-
-
-# 健康检查
-
-
-## 健康检查
-
-
-**接口地址**:`/health/check`
-
-
-**请求方式**:`GET`
-
-
-**请求数据类型**:`application/x-www-form-urlencoded`
-
-
-**响应数据类型**:`*/*`
-
-
-**接口描述**:<p>检查应用是否正常运行</p>
-
-
-
-**请求参数**:
-
-
-暂无
-
-
-**响应状态**:
-
-
-| 状态码 | 说明 | schema |
-| -------- | -------- | ----- | 
-|200|OK|通用返回对象|
-
-
-**响应参数**:
-
-
-| 参数名称 | 参数说明 | 类型 | schema |
-| -------- | -------- | ----- |----- | 
-|code||integer(int32)|integer(int32)|
-|msg||string||
-|data||object||
-
-
-**响应示例**:
-```javascript
-{
-	"code": 0,
-	"msg": "",
-	"data": {}
-}
-```
-
-
-# 登录管理
-
-
-## 验证码登录
-
-
-**接口地址**:`/smsLogin`
-
-
-**请求方式**:`POST`
-
-
-**请求数据类型**:`application/x-www-form-urlencoded,application/json`
-
-
-**响应数据类型**:`*/*`
-
-
-**接口描述**:<p>验证码登录</p>
-
-
-
-**请求示例**:
-
-
-```javascript
-{
-  "phone": "",
-  "code": ""
-}
-```
-
-
-**请求参数**:
-
-
-| 参数名称 | 参数说明 | 请求类型    | 是否必须 | 数据类型 | schema |
-| -------- | -------- | ----- | -------- | -------- | ------ |
-|smsLoginForm|SmsLoginForm|body|true|SmsLoginForm|SmsLoginForm|
-|&emsp;&emsp;phone|||true|string||
-|&emsp;&emsp;code|||true|string||
-
-
-**响应状态**:
-
-
-| 状态码 | 说明 | schema |
-| -------- | -------- | ----- | 
-|200|OK|通用返回对象|
-
-
-**响应参数**:
-
-
-| 参数名称 | 参数说明 | 类型 | schema |
-| -------- | -------- | ----- |----- | 
-|code||integer(int32)|integer(int32)|
-|msg||string||
-|data||object||
-
-
-**响应示例**:
-```javascript
-{
-	"code": 0,
-	"msg": "",
-	"data": {}
-}
-```
-
-
-## 发送短信
-
-
-**接口地址**:`/sendSms`
-
-
-**请求方式**:`GET`
-
-
-**请求数据类型**:`application/x-www-form-urlencoded`
-
-
-**响应数据类型**:`*/*`
-
-
-**接口描述**:<p>发送短信</p>
-
-
-
-**请求参数**:
-
-
-| 参数名称 | 参数说明 | 请求类型    | 是否必须 | 数据类型 | schema |
-| -------- | -------- | ----- | -------- | -------- | ------ |
-|phone|手机号|query|true|string||
 
 
 **响应状态**:
@@ -2126,9 +1946,9 @@
   "phone": "",
   "smsCode": "",
   "admin": true,
-  "accountNonLocked": true,
+  "credentialsNonExpired": true,
   "accountNonExpired": true,
-  "credentialsNonExpired": true
+  "accountNonLocked": true
 }
 ```
 
@@ -2158,9 +1978,9 @@
 |&emsp;&emsp;updater|更新人||false|string||
 |&emsp;&emsp;smsCode|短信验证码||false|string||
 |&emsp;&emsp;admin|||false|boolean||
-|&emsp;&emsp;accountNonLocked|||false|boolean||
-|&emsp;&emsp;accountNonExpired|||false|boolean||
 |&emsp;&emsp;credentialsNonExpired|||false|boolean||
+|&emsp;&emsp;accountNonExpired|||false|boolean||
+|&emsp;&emsp;accountNonLocked|||false|boolean||
 
 
 **响应状态**:
@@ -2223,9 +2043,9 @@
   "phone": "",
   "smsCode": "",
   "admin": true,
-  "accountNonLocked": true,
+  "credentialsNonExpired": true,
   "accountNonExpired": true,
-  "credentialsNonExpired": true
+  "accountNonLocked": true
 }
 ```
 
@@ -2255,9 +2075,9 @@
 |&emsp;&emsp;updater|更新人||false|string||
 |&emsp;&emsp;smsCode|短信验证码||false|string||
 |&emsp;&emsp;admin|||false|boolean||
-|&emsp;&emsp;accountNonLocked|||false|boolean||
-|&emsp;&emsp;accountNonExpired|||false|boolean||
 |&emsp;&emsp;credentialsNonExpired|||false|boolean||
+|&emsp;&emsp;accountNonExpired|||false|boolean||
+|&emsp;&emsp;accountNonLocked|||false|boolean||
 
 
 **响应状态**:
@@ -2767,6 +2587,811 @@
 | 参数名称 | 参数说明 | 请求类型    | 是否必须 | 数据类型 | schema |
 | -------- | -------- | ----- | -------- | -------- | ------ |
 |imageId||query|true|integer(int32)||
+
+
+**响应状态**:
+
+
+| 状态码 | 说明 | schema |
+| -------- | -------- | ----- | 
+|200|OK|通用返回对象|
+
+
+**响应参数**:
+
+
+| 参数名称 | 参数说明 | 类型 | schema |
+| -------- | -------- | ----- |----- | 
+|code||integer(int32)|integer(int32)|
+|msg||string||
+|data||object||
+
+
+**响应示例**:
+```javascript
+{
+	"code": 0,
+	"msg": "",
+	"data": {}
+}
+```
+
+
+# 材质管理
+
+
+## 上传材质
+
+
+**接口地址**:`/material/upload`
+
+
+**请求方式**:`POST`
+
+
+**请求数据类型**:`application/x-www-form-urlencoded,application/json`
+
+
+**响应数据类型**:`*/*`
+
+
+**接口描述**:<p>上传新的材质文件</p>
+
+
+
+**请求参数**:
+
+
+| 参数名称 | 参数说明 | 请求类型    | 是否必须 | 数据类型 | schema |
+| -------- | -------- | ----- | -------- | -------- | ------ |
+|name||query|true|string||
+|type||query|true|integer(int32)||
+|file||query|true|file||
+
+
+**响应状态**:
+
+
+| 状态码 | 说明 | schema |
+| -------- | -------- | ----- | 
+|200|OK|通用返回对象|
+
+
+**响应参数**:
+
+
+| 参数名称 | 参数说明 | 类型 | schema |
+| -------- | -------- | ----- |----- | 
+|code||integer(int32)|integer(int32)|
+|msg||string||
+|data||object||
+
+
+**响应示例**:
+```javascript
+{
+	"code": 0,
+	"msg": "",
+	"data": {}
+}
+```
+
+
+## 查询材质列表
+
+
+**接口地址**:`/material/list`
+
+
+**请求方式**:`POST`
+
+
+**请求数据类型**:`application/x-www-form-urlencoded,application/json`
+
+
+**响应数据类型**:`*/*`
+
+
+**接口描述**:<p>分页查询材质列表，支持按名称、类型、格式筛选</p>
+
+
+
+**请求示例**:
+
+
+```javascript
+{
+  "orderBy": 0,
+  "begin": "",
+  "end": "",
+  "pageNum": 1,
+  "pageSize": 10,
+  "name": "",
+  "type": 0,
+  "format": ""
+}
+```
+
+
+**请求参数**:
+
+
+| 参数名称 | 参数说明 | 请求类型    | 是否必须 | 数据类型 | schema |
+| -------- | -------- | ----- | -------- | -------- | ------ |
+|材质查询VO|材质查询VO|body|true|材质查询VO|材质查询VO|
+|&emsp;&emsp;orderBy|排序字段{0:根据example的字段排序，1:根据耗时排序}||false|integer(int32)||
+|&emsp;&emsp;begin|开始时间||false|string(date-time)||
+|&emsp;&emsp;end|结束时间||false|string(date-time)||
+|&emsp;&emsp;pageNum|页码，从 1 开始||true|integer(int32)||
+|&emsp;&emsp;pageSize|每页条数，最大值为 100||true|integer(int32)||
+|&emsp;&emsp;name|材质名称（模糊查询）||false|string||
+|&emsp;&emsp;type|材质类型：0-系统材质库，1-用户材质库||false|integer(int32)||
+|&emsp;&emsp;format|文件格式||false|string||
+
+
+**响应状态**:
+
+
+| 状态码 | 说明 | schema |
+| -------- | -------- | ----- | 
+|200|OK|通用返回对象|
+
+
+**响应参数**:
+
+
+| 参数名称 | 参数说明 | 类型 | schema |
+| -------- | -------- | ----- |----- | 
+|code||integer(int32)|integer(int32)|
+|msg||string||
+|data||object||
+
+
+**响应示例**:
+```javascript
+{
+	"code": 0,
+	"msg": "",
+	"data": {}
+}
+```
+
+
+## 获取材质下载链接
+
+
+**接口地址**:`/material/download/{id}`
+
+
+**请求方式**:`POST`
+
+
+**请求数据类型**:`application/x-www-form-urlencoded`
+
+
+**响应数据类型**:`*/*`
+
+
+**接口描述**:<p>获取材质文件的OSS下载链接并增加下载次数</p>
+
+
+
+**请求参数**:
+
+
+| 参数名称 | 参数说明 | 请求类型    | 是否必须 | 数据类型 | schema |
+| -------- | -------- | ----- | -------- | -------- | ------ |
+|id||path|true|integer(int64)||
+
+
+**响应状态**:
+
+
+| 状态码 | 说明 | schema |
+| -------- | -------- | ----- | 
+|200|OK|通用返回对象|
+
+
+**响应参数**:
+
+
+| 参数名称 | 参数说明 | 类型 | schema |
+| -------- | -------- | ----- |----- | 
+|code||integer(int32)|integer(int32)|
+|msg||string||
+|data||object||
+
+
+**响应示例**:
+```javascript
+{
+	"code": 0,
+	"msg": "",
+	"data": {}
+}
+```
+
+
+## 获取材质详情
+
+
+**接口地址**:`/material/{id}`
+
+
+**请求方式**:`GET`
+
+
+**请求数据类型**:`application/x-www-form-urlencoded`
+
+
+**响应数据类型**:`*/*`
+
+
+**接口描述**:<p>根据材质ID获取详细信息</p>
+
+
+
+**请求参数**:
+
+
+| 参数名称 | 参数说明 | 请求类型    | 是否必须 | 数据类型 | schema |
+| -------- | -------- | ----- | -------- | -------- | ------ |
+|id||path|true|integer(int64)||
+
+
+**响应状态**:
+
+
+| 状态码 | 说明 | schema |
+| -------- | -------- | ----- | 
+|200|OK|通用返回对象|
+
+
+**响应参数**:
+
+
+| 参数名称 | 参数说明 | 类型 | schema |
+| -------- | -------- | ----- |----- | 
+|code||integer(int32)|integer(int32)|
+|msg||string||
+|data||object||
+
+
+**响应示例**:
+```javascript
+{
+	"code": 0,
+	"msg": "",
+	"data": {}
+}
+```
+
+
+## 删除材质
+
+
+**接口地址**:`/material/{id}`
+
+
+**请求方式**:`DELETE`
+
+
+**请求数据类型**:`application/x-www-form-urlencoded`
+
+
+**响应数据类型**:`*/*`
+
+
+**接口描述**:<p>删除指定材质（逻辑删除）。管理员可以删除所有材质，普通用户只能删除自己的材质</p>
+
+
+
+**请求参数**:
+
+
+| 参数名称 | 参数说明 | 请求类型    | 是否必须 | 数据类型 | schema |
+| -------- | -------- | ----- | -------- | -------- | ------ |
+|id||path|true|integer(int64)||
+
+
+**响应状态**:
+
+
+| 状态码 | 说明 | schema |
+| -------- | -------- | ----- | 
+|200|OK|通用返回对象|
+
+
+**响应参数**:
+
+
+| 参数名称 | 参数说明 | 类型 | schema |
+| -------- | -------- | ----- |----- | 
+|code||integer(int32)|integer(int32)|
+|msg||string||
+|data||object||
+
+
+**响应示例**:
+```javascript
+{
+	"code": 0,
+	"msg": "",
+	"data": {}
+}
+```
+
+
+# 材质测试
+
+
+## 测试上传材质
+
+
+**接口地址**:`/material/test/upload`
+
+
+**请求方式**:`POST`
+
+
+**请求数据类型**:`application/x-www-form-urlencoded,application/json`
+
+
+**响应数据类型**:`*/*`
+
+
+**接口描述**:<p>测试上传材质功能</p>
+
+
+
+**请求示例**:
+
+
+```javascript
+{
+  "name": "",
+  "file": "",
+  "type": 0
+}
+```
+
+
+**请求参数**:
+
+
+| 参数名称 | 参数说明 | 请求类型    | 是否必须 | 数据类型 | schema |
+| -------- | -------- | ----- | -------- | -------- | ------ |
+|材质上传VO|材质上传VO|body|true|材质上传VO|材质上传VO|
+|&emsp;&emsp;name|材质名称||true|string||
+|&emsp;&emsp;file|||true|string(binary)||
+|&emsp;&emsp;type|数据库类型：0-系统材质库，1-用户材质库||true|integer(int32)||
+
+
+**响应状态**:
+
+
+| 状态码 | 说明 | schema |
+| -------- | -------- | ----- | 
+|200|OK|通用返回对象|
+
+
+**响应参数**:
+
+
+| 参数名称 | 参数说明 | 类型 | schema |
+| -------- | -------- | ----- |----- | 
+|code||integer(int32)|integer(int32)|
+|msg||string||
+|data||object||
+
+
+**响应示例**:
+```javascript
+{
+	"code": 0,
+	"msg": "",
+	"data": {}
+}
+```
+
+
+## 测试查询材质列表
+
+
+**接口地址**:`/material/test/list`
+
+
+**请求方式**:`POST`
+
+
+**请求数据类型**:`application/x-www-form-urlencoded,application/json`
+
+
+**响应数据类型**:`*/*`
+
+
+**接口描述**:<p>测试查询材质列表功能，支持按名称、类型、格式筛选</p>
+
+
+
+**请求示例**:
+
+
+```javascript
+{
+  "orderBy": 0,
+  "begin": "",
+  "end": "",
+  "pageNum": 1,
+  "pageSize": 10,
+  "name": "",
+  "type": 0,
+  "format": ""
+}
+```
+
+
+**请求参数**:
+
+
+| 参数名称 | 参数说明 | 请求类型    | 是否必须 | 数据类型 | schema |
+| -------- | -------- | ----- | -------- | -------- | ------ |
+|材质查询VO|材质查询VO|body|true|材质查询VO|材质查询VO|
+|&emsp;&emsp;orderBy|排序字段{0:根据example的字段排序，1:根据耗时排序}||false|integer(int32)||
+|&emsp;&emsp;begin|开始时间||false|string(date-time)||
+|&emsp;&emsp;end|结束时间||false|string(date-time)||
+|&emsp;&emsp;pageNum|页码，从 1 开始||true|integer(int32)||
+|&emsp;&emsp;pageSize|每页条数，最大值为 100||true|integer(int32)||
+|&emsp;&emsp;name|材质名称（模糊查询）||false|string||
+|&emsp;&emsp;type|材质类型：0-系统材质库，1-用户材质库||false|integer(int32)||
+|&emsp;&emsp;format|文件格式||false|string||
+
+
+**响应状态**:
+
+
+| 状态码 | 说明 | schema |
+| -------- | -------- | ----- | 
+|200|OK|通用返回对象|
+
+
+**响应参数**:
+
+
+| 参数名称 | 参数说明 | 类型 | schema |
+| -------- | -------- | ----- |----- | 
+|code||integer(int32)|integer(int32)|
+|msg||string||
+|data||object||
+
+
+**响应示例**:
+```javascript
+{
+	"code": 0,
+	"msg": "",
+	"data": {}
+}
+```
+
+
+## 测试下载材质
+
+
+**接口地址**:`/material/test/download/{id}`
+
+
+**请求方式**:`POST`
+
+
+**请求数据类型**:`application/x-www-form-urlencoded`
+
+
+**响应数据类型**:`*/*`
+
+
+**接口描述**:<p>测试下载材质功能</p>
+
+
+
+**请求参数**:
+
+
+| 参数名称 | 参数说明 | 请求类型    | 是否必须 | 数据类型 | schema |
+| -------- | -------- | ----- | -------- | -------- | ------ |
+|id||path|true|integer(int64)||
+
+
+**响应状态**:
+
+
+| 状态码 | 说明 | schema |
+| -------- | -------- | ----- | 
+|200|OK|通用返回对象|
+
+
+**响应参数**:
+
+
+| 参数名称 | 参数说明 | 类型 | schema |
+| -------- | -------- | ----- |----- | 
+|code||integer(int32)|integer(int32)|
+|msg||string||
+|data||object||
+
+
+**响应示例**:
+```javascript
+{
+	"code": 0,
+	"msg": "",
+	"data": {}
+}
+```
+
+
+## 测试获取材质详情
+
+
+**接口地址**:`/material/test/{id}`
+
+
+**请求方式**:`GET`
+
+
+**请求数据类型**:`application/x-www-form-urlencoded`
+
+
+**响应数据类型**:`*/*`
+
+
+**接口描述**:<p>测试获取材质详情功能</p>
+
+
+
+**请求参数**:
+
+
+| 参数名称 | 参数说明 | 请求类型    | 是否必须 | 数据类型 | schema |
+| -------- | -------- | ----- | -------- | -------- | ------ |
+|id||path|true|integer(int64)||
+
+
+**响应状态**:
+
+
+| 状态码 | 说明 | schema |
+| -------- | -------- | ----- | 
+|200|OK|通用返回对象|
+
+
+**响应参数**:
+
+
+| 参数名称 | 参数说明 | 类型 | schema |
+| -------- | -------- | ----- |----- | 
+|code||integer(int32)|integer(int32)|
+|msg||string||
+|data||object||
+
+
+**响应示例**:
+```javascript
+{
+	"code": 0,
+	"msg": "",
+	"data": {}
+}
+```
+
+
+## 测试删除材质
+
+
+**接口地址**:`/material/test/{id}`
+
+
+**请求方式**:`DELETE`
+
+
+**请求数据类型**:`application/x-www-form-urlencoded`
+
+
+**响应数据类型**:`*/*`
+
+
+**接口描述**:<p>测试删除材质功能。管理员可以删除所有材质，普通用户只能删除自己的材质</p>
+
+
+
+**请求参数**:
+
+
+| 参数名称 | 参数说明 | 请求类型    | 是否必须 | 数据类型 | schema |
+| -------- | -------- | ----- | -------- | -------- | ------ |
+|id||path|true|integer(int64)||
+
+
+**响应状态**:
+
+
+| 状态码 | 说明 | schema |
+| -------- | -------- | ----- | 
+|200|OK|通用返回对象|
+
+
+**响应参数**:
+
+
+| 参数名称 | 参数说明 | 类型 | schema |
+| -------- | -------- | ----- |----- | 
+|code||integer(int32)|integer(int32)|
+|msg||string||
+|data||object||
+
+
+**响应示例**:
+```javascript
+{
+	"code": 0,
+	"msg": "",
+	"data": {}
+}
+```
+
+
+# 健康检查
+
+
+## 健康检查
+
+
+**接口地址**:`/health/check`
+
+
+**请求方式**:`GET`
+
+
+**请求数据类型**:`application/x-www-form-urlencoded`
+
+
+**响应数据类型**:`*/*`
+
+
+**接口描述**:<p>检查应用是否正常运行</p>
+
+
+
+**请求参数**:
+
+
+暂无
+
+
+**响应状态**:
+
+
+| 状态码 | 说明 | schema |
+| -------- | -------- | ----- | 
+|200|OK|通用返回对象|
+
+
+**响应参数**:
+
+
+| 参数名称 | 参数说明 | 类型 | schema |
+| -------- | -------- | ----- |----- | 
+|code||integer(int32)|integer(int32)|
+|msg||string||
+|data||object||
+
+
+**响应示例**:
+```javascript
+{
+	"code": 0,
+	"msg": "",
+	"data": {}
+}
+```
+
+
+# 登录管理
+
+
+## 验证码登录
+
+
+**接口地址**:`/smsLogin`
+
+
+**请求方式**:`POST`
+
+
+**请求数据类型**:`application/x-www-form-urlencoded,application/json`
+
+
+**响应数据类型**:`*/*`
+
+
+**接口描述**:<p>验证码登录</p>
+
+
+
+**请求示例**:
+
+
+```javascript
+{
+  "phone": "",
+  "code": ""
+}
+```
+
+
+**请求参数**:
+
+
+| 参数名称 | 参数说明 | 请求类型    | 是否必须 | 数据类型 | schema |
+| -------- | -------- | ----- | -------- | -------- | ------ |
+|smsLoginForm|SmsLoginForm|body|true|SmsLoginForm|SmsLoginForm|
+|&emsp;&emsp;phone|||true|string||
+|&emsp;&emsp;code|||true|string||
+
+
+**响应状态**:
+
+
+| 状态码 | 说明 | schema |
+| -------- | -------- | ----- | 
+|200|OK|通用返回对象|
+
+
+**响应参数**:
+
+
+| 参数名称 | 参数说明 | 类型 | schema |
+| -------- | -------- | ----- |----- | 
+|code||integer(int32)|integer(int32)|
+|msg||string||
+|data||object||
+
+
+**响应示例**:
+```javascript
+{
+	"code": 0,
+	"msg": "",
+	"data": {}
+}
+```
+
+
+## 发送短信
+
+
+**接口地址**:`/sendSms`
+
+
+**请求方式**:`GET`
+
+
+**请求数据类型**:`application/x-www-form-urlencoded`
+
+
+**响应数据类型**:`*/*`
+
+
+**接口描述**:<p>发送短信</p>
+
+
+
+**请求参数**:
+
+
+| 参数名称 | 参数说明 | 请求类型    | 是否必须 | 数据类型 | schema |
+| -------- | -------- | ----- | -------- | -------- | ------ |
+|phone|手机号|query|true|string||
 
 
 **响应状态**:
