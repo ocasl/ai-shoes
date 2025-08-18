@@ -261,7 +261,7 @@
               @mousemove.prevent="handleBrushing" @mouseup.prevent="stopBrushing" @mouseleave="stopBrushing"></canvas>
 
             <!-- 调试信息 -->
-      
+
             <!-- 涂抹工具控制栏 -->
             <div class="brush-controls">
               <div class="brush-size-control">
@@ -347,7 +347,7 @@
                     @contextmenu="handleSmartCutoutRightClick" @mousemove="handleSmartCutoutHover"
                     @mouseleave="clearHoverPreview"></canvas>
 
-           
+
 
                   <!-- 悬浮预览层 -->
                   <canvas v-if="isHovering && hoverPreviewMask" class="hover-preview-canvas"
@@ -363,8 +363,9 @@
                     </div>
                   </div>
 
-                  <!-- 抠图结果预览 -->
-                  <canvas v-if="smartCutoutMask" class="cutout-result-canvas" ref="cutoutResultCanvasRef"></canvas>
+                  <!-- 抠图结果预览 - 改用 v-show 避免DOM销毁重建 -->
+                  <canvas v-show="currentDisplayMask" class="cutout-result-canvas" ref="cutoutResultCanvasRef"
+                    :style="{ opacity: isRequestingMask ? 0.7 : 1, transition: 'opacity 0.2s ease' }"></canvas>
                 </div>
               </div>
             </div>
@@ -570,9 +571,12 @@ const isSegmentationOnly = ref(false)
 // 智能抠图相关状态
 const isSmartCutoutMode = ref(false)
 const isImageLoadedToSAM = ref(false)
-const isProcessingClick = ref(false)  // 防抖处理，避免快速连续点击
+const isProcessingClick = ref(false)
 const smartCutoutPoints = ref<Array<{ x: number, y: number, type: 'foreground' | 'background' }>>([])
 const smartCutoutMask = ref('')
+// 🔥 新增：防闪烁的蒙版状态管理
+const lastValidMask = ref('')  // 保存上一次有效的蒙版
+const isRequestingMask = ref(false)  // 是否正在请求新蒙版
 const smartCutoutImageRef = ref<HTMLImageElement | null>(null)
 const smartCutoutCanvasRef = ref<HTMLCanvasElement | null>(null)
 
@@ -588,17 +592,18 @@ const smartCutoutZoom = ref(1.0)
 const minZoom = 0.2
 const maxZoom = 5.0
 
-
-
-
 // 新增状态
 const smartCutoutHistory = ref<Array<{ points: Array<{ x: number, y: number, type: 'foreground' | 'background' }>, mask: string }>>([])
 const hoverPreviewMask = ref('')
 const isHovering = ref(false)
 const hoverTimeout = ref<NodeJS.Timeout | null>(null)
 const hoverPreviewCanvasRef = ref<HTMLCanvasElement | null>(null)
-// 新增：智能抠图模式状态（选取/排除）
 
+// 🔥 计算当前显示的蒙版 - 防闪烁的核心逻辑
+const currentDisplayMask = computed(() => {
+  // 优先使用当前蒙版，如果为空则使用上一次有效蒙版
+  return smartCutoutMask.value || lastValidMask.value
+})
 
 // 计算智能抠图的智能缩放比例
 // 计算智能抠图的智能缩放比例
@@ -2059,8 +2064,13 @@ const recalculateSmartCutoutMask = async () => {
   }
 }
 
-// 清除抠图结果
+// 清除抠图结果 - 重置防闪烁状态
 const clearCutoutResult = () => {
+  smartCutoutMask.value = ''
+  // 🔥 清除时也要重置上一次有效蒙版
+  lastValidMask.value = ''
+  isRequestingMask.value = false
+
   const canvas = cutoutResultCanvasRef.value
   if (canvas) {
     const ctx = canvas.getContext('2d')
@@ -2068,6 +2078,24 @@ const clearCutoutResult = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
     }
   }
+}
+
+// 退出智能抠图模式 - 重置防闪烁状态
+const exitSmartCutoutMode = () => {
+  isSmartCutoutMode.value = false
+  smartCutoutPoints.value = []
+  smartCutoutMask.value = ''
+  // 🔥 退出时清除所有蒙版状态
+  lastValidMask.value = ''
+  isRequestingMask.value = false
+  smartCutoutZoom.value = 1.0
+  clearHoverPreview()
+  clearCutoutResult()
+
+  // 结束SAM任务
+  finishSamTask()
+
+  ElMessage.info('已退出智能抠图模式')
 }
 
 // 修改后的 adjustCanvasPosition 函数
@@ -3974,7 +4002,7 @@ const createClickEffect = (x, y, type = 'foreground') => {
 
 
 
-// 添加智能抠图点
+// 添加智能抠图点 - 彻底修复闪烁问题
 const addSmartCutoutPoint = async (x: number, y: number, type: 'foreground' | 'background') => {
   console.log('🎯 [智能抠图] addSmartCutoutPoint 开始执行', {
     坐标: { x, y },
@@ -3983,43 +4011,20 @@ const addSmartCutoutPoint = async (x: number, y: number, type: 'foreground' | 'b
   })
 
   try {
+    // 🔥 关键：在整个过程中绝不清空 smartCutoutMask
+    isRequestingMask.value = true
+
     // 确保taskId存在
     if (!samTaskId.value && isImageLoadedToSAM.value) {
       console.warn('图像已加载但任务ID丢失，准备重新加载图像')
       isImageLoadedToSAM.value = false
     }
 
-    // 如果图像还未加载到SAM，先加载图像
+    // 如果图像未加载到SAM，先加载
     if (!isImageLoadedToSAM.value) {
-      console.log('🎯 [智能抠图] 首次点击，先加载图像到SAM')
-
-      const image = smartCutoutImageRef.value
-      if (!image) {
-        throw new Error('图像元素未找到')
-      }
-
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      if (!ctx) {
-        throw new Error('无法创建Canvas上下文')
-      }
-
-      // 直接使用原始尺寸，不做缩放
-      canvas.width = image.naturalWidth
-      canvas.height = image.naturalHeight
-      ctx.drawImage(image, 0, 0)
-
-      const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85)
-      if (!imageDataUrl || typeof imageDataUrl !== 'string') {
-        throw new Error('无法生成图片数据')
-      }
-      const base64Data = imageDataUrl.split(',')[1]
-      if (!base64Data) {
-        throw new Error('无法提取base64数据')
-      }
-
+      console.log('图像未加载到SAM，开始加载...')
+      const base64Data = await imageToBase64(editingImageUrl.value)
       await loadImageToSAM(base64Data)
-      isImageLoadedToSAM.value = true
     }
 
     // 确认taskId
@@ -4033,7 +4038,7 @@ const addSmartCutoutPoint = async (x: number, y: number, type: 'foreground' | 'b
     // 清除悬浮预览
     clearHoverPreview()
 
-    // 调用SAM分割API，带上taskId
+    // 调用SAM分割API
     const apiUrl = `${SAM_API_BASE}/segment`
     const requestData = {
       x: x,
@@ -4047,30 +4052,16 @@ const addSmartCutoutPoint = async (x: number, y: number, type: 'foreground' | 'b
       controller.abort()
     }, 30000)
 
-    let response
-    try {
-      // 标记 
-      response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
-        signal: controller.signal
-      })
+    console.log('🎯 [智能抠图] 发送SAM分割请求', { apiUrl, requestData })
 
-      clearTimeout(timeoutId)
-    } catch (fetchError: any) {
-      clearTimeout(timeoutId)
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestData),
+      signal: controller.signal
+    })
 
-      if (fetchError.name === 'AbortError') {
-        throw new Error('请求超时：SAM服务响应时间过长，请检查网络连接或稍后重试')
-      } else if (fetchError.message.includes('Failed to fetch')) {
-        throw new Error('网络连接失败：无法连接到SAM服务器，请检查服务器状态和网络连接')
-      } else {
-        throw new Error(`网络请求失败: ${fetchError.message}`)
-      }
-    }
+    clearTimeout(timeoutId)
 
     if (!response.ok) {
       let errorText = ''
@@ -4079,7 +4070,6 @@ const addSmartCutoutPoint = async (x: number, y: number, type: 'foreground' | 'b
       } catch (e) {
         console.error('🎯 [智能抠图] 无法读取错误响应内容:', e)
       }
-
       throw new Error(`SAM服务器错误 (${response.status}): ${response.statusText}${errorText ? ' - ' + errorText : ''}`)
     }
 
@@ -4093,58 +4083,55 @@ const addSmartCutoutPoint = async (x: number, y: number, type: 'foreground' | 'b
     if (result.success) {
       console.log('🎯 [智能抠图] SAM分割成功，开始处理结果')
 
-      // 更新蒙版base64
-      smartCutoutMask.value = 'data:image/png;base64,' + result.mask
+      // 🔥 关键修复：先保存旧蒙版，再直接替换，绝不让 smartCutoutMask 变空
+      const newMask = 'data:image/png;base64,' + result.mask
+
+      // 如果当前有蒙版，保存为上一次有效蒙版
+      if (smartCutoutMask.value) {
+        lastValidMask.value = smartCutoutMask.value
+      }
+
+      // 直接替换，不经过空值状态
+      smartCutoutMask.value = newMask
 
       // 等待DOM更新
       await nextTick()
 
-      // 立即更新标记点缩放（关键）
+      // 立即更新标记点缩放
       updatePointMarkersScale()
 
       // 绘制带高亮边缘的抠图结果
       await drawSmartCutoutResultWithHighlight()
 
+      console.log('✅ [智能抠图] 分割完成并绘制结果')
     } else {
-      // 处理错误情况，尝试自动校正图像状态
-      const errorMessage = result.error || result.message || ''
-      if (errorMessage.includes('An image must be set') || errorMessage.includes('set_image')) {
-        console.log('🎯 [智能抠图] 检测到图像未设置错误，尝试重新加载图像并重试...')
+      console.error('🎯 [智能抠图] SAM分割失败:', result)
 
+      // 重试逻辑
+      if (result.error && result.error.includes('找不到对应的任务')) {
+        console.log('🎯 [智能抠图] 任务丢失，尝试重新加载图像并重试')
         try {
           const base64Data = await imageToBase64(editingImageUrl.value)
           await loadImageToSAM(base64Data)
 
-          // 重新添加之前所有点（除了刚添加的）
-          for (let i = 0; i < smartCutoutPoints.value.length - 1; i++) {
-            const prevPoint = smartCutoutPoints.value[i]
-            await fetch(apiUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                x: prevPoint.x,
-                y: prevPoint.y,
-                point_type: prevPoint.type,
-                taskId: samTaskId.value
-              })
-            })
-          }
-
-          // 重试当前点分割请求
           const retryResponse = await fetch(apiUrl, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestData)
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...requestData,
+              taskId: samTaskId.value
+            })
           })
 
           if (retryResponse.ok) {
             const retryResult = await retryResponse.json()
             if (retryResult.success) {
-              smartCutoutMask.value = 'data:image/png;base64,' + retryResult.mask
+              // 🔥 重试时也是直接替换
+              const retryNewMask = 'data:image/png;base64,' + retryResult.mask
+              if (smartCutoutMask.value) {
+                lastValidMask.value = smartCutoutMask.value
+              }
+              smartCutoutMask.value = retryNewMask
               await nextTick()
               updatePointMarkersScale()
               await drawSmartCutoutResultWithHighlight()
@@ -4156,9 +4143,8 @@ const addSmartCutoutPoint = async (x: number, y: number, type: 'foreground' | 'b
         }
       }
 
-      // 如果分割失败，移除刚加的点，避免状态不一致
+      // 如果分割失败，移除刚加的点，但不清空蒙版
       smartCutoutPoints.value.pop()
-
       throw new Error(result.error || result.message || 'SAM分割失败')
     }
   } catch (error: any) {
@@ -4167,6 +4153,8 @@ const addSmartCutoutPoint = async (x: number, y: number, type: 'foreground' | 'b
       错误消息: error.message
     })
     ElMessage.error('智能抠图分割失败: ' + error.message)
+  } finally {
+    isRequestingMask.value = false
   }
 }
 
@@ -4174,11 +4162,12 @@ const addSmartCutoutPoint = async (x: number, y: number, type: 'foreground' | 'b
 
 
 
-// 绘制带高亮边缘的智能抠图结果
+// 绘制带高亮边缘的智能抠图结果 - 使用防闪烁蒙版
 const drawSmartCutoutResultWithHighlight = async () => {
   console.log('🎯 [调试] 开始绘制高亮边缘结果')
 
-  if (!smartCutoutMask.value) {
+  // 🔥 使用当前显示的蒙版（防闪烁）
+  if (!currentDisplayMask.value) {
     console.log('❌ [调试] 没有蒙版数据')
     return
   }
@@ -4187,7 +4176,7 @@ const drawSmartCutoutResultWithHighlight = async () => {
 
   console.log('🎯 [调试] 元素检查', {
     image: !!image,
-    smartCutoutMask: !!smartCutoutMask.value,
+    currentDisplayMask: !!currentDisplayMask.value,
     imageSize: image ? { width: image.offsetWidth, height: image.offsetHeight } : null
   })
 
@@ -4209,37 +4198,26 @@ const drawSmartCutoutResultWithHighlight = async () => {
     return
   }
 
+  // 设置Canvas尺寸与图片一致
+  const rect = image.getBoundingClientRect()
+  resultCanvas.width = rect.width
+  resultCanvas.height = rect.height
+
   const ctx = resultCanvas.getContext('2d')
   if (!ctx) {
     console.log('❌ [调试] 无法获取Canvas上下文')
     return
   }
 
-  // 关键修复：Canvas逻辑尺寸设置为图片原始尺寸，与蒙版尺寸一致
-  resultCanvas.width = image.naturalWidth   // 1080 (与蒙版尺寸一致)
-  resultCanvas.height = image.naturalHeight // 1080 (与蒙版尺寸一致)
-  // Canvas显示尺寸设置为图片显示尺寸
-  resultCanvas.style.width = image.offsetWidth + 'px'   // 1040 (显示尺寸)
-  resultCanvas.style.height = image.offsetHeight + 'px' // 1040 (显示尺寸)
-
-  console.log('🎯 [调试] Canvas尺寸设置', {
-    width: resultCanvas.width,
-    height: resultCanvas.height,
-    styleWidth: resultCanvas.style.width,
-    styleHeight: resultCanvas.style.height
-  })
-
   // 清除画布
   ctx.clearRect(0, 0, resultCanvas.width, resultCanvas.height)
-
-
-
 
   // 加载蒙版图片
   const maskImg = new Image()
   await new Promise((resolve) => {
     maskImg.onload = resolve
-    maskImg.src = smartCutoutMask.value
+    // 🔥 使用防闪烁的蒙版
+    maskImg.src = currentDisplayMask.value
   })
 
   console.log('🎯 [调试] 蒙版图片加载完成', {
@@ -4462,21 +4440,7 @@ const handleKeyDown = (event: KeyboardEvent) => {
   }
 }
 
-// 退出智能抠图模式
-const exitSmartCutoutMode = () => {
-  isSmartCutoutMode.value = false
-  currentTool.value = ''
-  smartCutoutPoints.value = []
-  smartCutoutMask.value = ''
 
-  // 移除事件监听
-  const canvas = document.querySelector('.image-display img') as HTMLImageElement
-  if (canvas) {
-    canvas.removeEventListener('click', handleSmartCutoutClick)
-    canvas.removeEventListener('contextmenu', handleSmartCutoutRightClick)
-    canvas.style.cursor = 'default'
-  }
-}
 
 // 显示抠图结果和操作按钮
 const showSegmentationResult = (imageUrl: string) => {
@@ -4642,7 +4606,7 @@ const exitResultsView = () => {
     当前选中的图片索引: currentSlide.value,
     当前isViewingResults值: oldValue
   })
-  
+
   if (resultImages.value.length > 0) {
     // 使用当前选中的图片
     const selectedImage = resultImages.value[currentSlide.value]
@@ -4694,7 +4658,7 @@ watch(() => props.isViewResults, (newValue) => {
     是否需要更新: newValue !== oldValue,
     调用栈: new Error().stack
   })
-  
+
   if (newValue !== oldValue) {
     console.log(`🔍 [${componentId.value}] watch 监听器更新 isViewingResults:`, {
       从: oldValue,
@@ -5359,7 +5323,7 @@ defineExpose({
   editedImageInfo,  // 暴露编辑后的图片信息
   showResults: (images: string[]) => {
     console.log('ImageWorkspace.showResults被调用，图片数量:', images.length, '图片URL示例:', images.length > 0 ? images[0] : 'none')
-    
+
     // 添加日志记录
     logViewingResultsChange('showResults 方法开始', true, {
       图片数量: images.length,
@@ -5418,7 +5382,7 @@ defineExpose({
       const oldValue = isViewingResults.value
       isViewingResults.value = true
       currentSlide.value = 0
-      
+
       // 添加日志记录
       logViewingResultsChange('showResults 方法更新状态', true, {
         旧值: oldValue,

@@ -4,13 +4,8 @@
     <div v-if="shoeStore.aiTaskStatus === 'running'" class="loading-overlay">
       <div class="loading-container">
         <div class="loading-spinner"></div>
-        <el-progress 
-          :percentage="shoeStore.aiTaskProgress" 
-          :stroke-width="8"
-          :show-text="false"
-          color="#c8ad7f"
-          class="loading-progress"
-        />
+        <el-progress :percentage="shoeStore.aiTaskProgress" :stroke-width="8" :show-text="false" color="#c8ad7f"
+          class="loading-progress" />
         <div class="loading-percentage">{{ shoeStore.aiTaskProgress }}%</div>
         <div class="loading-text">AI任务执行中</div>
       </div>
@@ -29,42 +24,53 @@
       <!-- 左侧面板 -->
       <div class="left-panel">
         <!-- Step 1 -->
-        <div class="step-section" :class="{ 'active-step': currentStep === 1 }" >
+        <div class="step-section" :class="{ 'active-step': currentStep === 1 }">
           <div class="step-header" @click="setStep(1)">
             <span class="step-title">Step 1</span>
             <span class="step-desc">上传需要修改的鞋款</span>
             <el-tooltip content="帮助信息" placement="top">
-              <el-icon><QuestionFilled /></el-icon>
+              <el-icon>
+                <QuestionFilled />
+              </el-icon>
             </el-tooltip>
             <span v-if="mainImage" class="step-status">
-              <el-icon><Check /></el-icon>
+              <el-icon>
+                <Check />
+              </el-icon>
             </span>
           </div>
-          
+
           <div class="upload-section">
             <div class="image-preview" @click="handleMainUploadClick">
               <div v-if="mainImage" class="preview-container">
                 <img :src="mainImage" alt="主图预览" class="preview-img" crossorigin="anonymous" />
                 <div class="change-overlay">
-                  <el-icon><Plus /></el-icon>
+                  <el-icon>
+                    <Plus />
+                  </el-icon>
                   <span>更换图片</span>
                 </div>
                 <button class="zoom-icon-btn" @click.stop="showZoomDialogMain = true">
-                  <el-icon><ZoomIn /></el-icon>
+                  <el-icon>
+                    <ZoomIn />
+                  </el-icon>
                 </button>
               </div>
               <div v-else class="upload-placeholder">
-                <el-icon><Plus /></el-icon>
+                <el-icon>
+                  <Plus />
+                </el-icon>
                 <span>点击上传图片</span>
 
-                
+
               </div>
-              <input ref="fileInputMain" type="file" accept="image/*" style="display:none" @change="handleMainFileSelect" />
+              <input ref="fileInputMain" type="file" accept="image/*" style="display:none"
+                @change="handleMainFileSelect" />
             </div>
-            
-  
-          
-            
+
+
+
+
             <div class="control-switch">
               <span>主体加强</span>
               <el-switch v-model="keepMainBody" />
@@ -78,27 +84,36 @@
             <span class="step-title">Step 2</span>
             <span class="step-desc">上传修改区域的参考图</span>
             <span v-if="referenceImage" class="step-status">
-              <el-icon><Check /></el-icon>
+              <el-icon>
+                <Check />
+              </el-icon>
             </span>
           </div>
-          
+
           <div class="upload-section">
             <div class="image-preview reference-image" @click="handleReferenceUploadClick">
               <div v-if="referenceImage" class="preview-container">
                 <img :src="referenceImage" alt="参考图预览" class="preview-img" crossorigin="anonymous" />
                 <div class="change-overlay">
-                  <el-icon><Plus /></el-icon>
+                  <el-icon>
+                    <Plus />
+                  </el-icon>
                   <span>更换图片</span>
                 </div>
                 <button class="zoom-icon-btn" @click.stop="showZoomDialogReference = true">
-                  <el-icon><ZoomIn /></el-icon>
+                  <el-icon>
+                    <ZoomIn />
+                  </el-icon>
                 </button>
               </div>
               <div v-else class="upload-placeholder">
-                <el-icon><Camera /></el-icon>
+                <el-icon>
+                  <Camera />
+                </el-icon>
                 <span>点击上传图片</span>
               </div>
-              <input ref="fileInputReference" type="file" accept="image/*" style="display:none" @change="handleReferenceFileSelect" />
+              <input ref="fileInputReference" type="file" accept="image/*" style="display:none"
+                @change="handleReferenceFileSelect" />
             </div>
           </div>
         </div>
@@ -123,20 +138,16 @@
           <Suspense>
             <template #default>
               <div class="image-workspace-container">
-                <ImageWorkspaceComp
-                  :image-url="mainImage"
-                  :is-view-results="isViewingResults"
-                  :result-images="generatedImages"
-                  @image-edited="handleResultSelected"
-                  @exit-results="exitResultsView"
-                  :hideMaskTool="true"
-                  ref="resultsWorkspaceRef"
-                />
+                <ImageWorkspaceComp :image-url="mainImage" :is-view-results="isViewingResults"
+                  :result-images="generatedImages" @image-edited="handleResultSelected" @exit-results="exitResultsView"
+                  :hideMaskTool="true" ref="resultsWorkspaceRef" />
               </div>
             </template>
             <template #fallback>
               <div class="loading-state">
-                <el-icon class="loading-icon"><Loading /></el-icon>
+                <el-icon class="loading-icon">
+                  <Loading />
+                </el-icon>
                 <p>加载中...</p>
               </div>
             </template>
@@ -144,13 +155,10 @@
         </template>
         <template v-else>
           <!-- 显示主图 -->
-         
+
           <!-- 显示主图掩码高亮 -->
           <div class="mask-display-container" v-if="mainImage && smartSelectionMask">
-            <canvas
-              ref="mainMaskCanvas"
-              class="mask-canvas"
-            ></canvas>
+            <canvas ref="mainMaskCanvas" class="mask-canvas"></canvas>
           </div>
         </template>
       </div>
@@ -158,16 +166,16 @@
       <!-- 右侧面板 -->
       <div class="right-panel">
         <!-- Step 3 -->
-        <div class="step-section" :class="{ 'active-step': currentStep === 3 }" >
+        <div class="step-section" :class="{ 'active-step': currentStep === 3 }">
           <div class="step-header" @click="setStep(3)">
             <span class="step-title">Step 3</span>
             <span class="step-desc">参数调整</span>
           </div>
-          
+
           <div class="params-section">
             <div class="param-item">
               <span>主图强度</span>
-              <el-slider v-model="mainImageStrength"  />
+              <el-slider v-model="mainImageStrength" />
             </div>
             <div class="param-item">
               <span>结构强度</span>
@@ -180,25 +188,16 @@
           </div>
 
           <div class="model-selection">
-            <ModelSelector 
-              v-model="selectedModel"
-              @select="handleModelSelect"
-              @load-error="handleModelLoadError"
-              :require-login="true"
-            />
+            <ModelSelector v-model="selectedModel" @select="handleModelSelect" @load-error="handleModelLoadError"
+              :require-login="true" />
           </div>
         </div>
 
         <!-- 生成按钮 -->
-        <el-button 
-          type="primary" 
-          class="generate-btn" 
-          @click="handleGenerate"
-          :disabled="!canGenerate"
-        >
+        <el-button type="primary" class="generate-btn" @click="handleGenerate" :disabled="!canGenerate">
           {{ shoeStore.aiTaskStatus === 'running' ? '生成中...' : '立即生成' }}
         </el-button>
-        
+
         <!-- <div v-if="isViewingResults" class="results-controls">
           <el-button type="primary" @click="exitResultsView" class="return-btn">
             返回编辑
@@ -207,20 +206,17 @@
       </div>
 
       <!-- 主图本地预览弹窗 -->
-      <el-dialog 
-        v-model="showPreviewDialogMain" 
-        title="主图预览" 
-        width="800px" 
-        :close-on-click-modal="false"
-        @close="cancelMainPreview"
-      >
+      <el-dialog v-model="showPreviewDialogMain" title="主图预览" width="800px" :close-on-click-modal="false"
+        @close="cancelMainPreview">
         <div class="upload-modal-content">
           <div class="upload-area">
             <div v-if="previewImageMain" class="file-preview">
               <img :src="previewImageMain" alt="主图预览" class="preview-img" />
             </div>
             <div v-else class="upload-placeholder">
-              <el-icon><Plus /></el-icon>
+              <el-icon>
+                <Plus />
+              </el-icon>
               <span>请先选择图片</span>
               <p class="upload-tip">支持 JPG、PNG 格式，最大 10MB</p>
             </div>
@@ -235,20 +231,17 @@
       </el-dialog>
 
       <!-- 参考图本地预览弹窗 -->
-      <el-dialog 
-        v-model="showPreviewDialogReference" 
-        title="参考图预览" 
-        width="800px" 
-        :close-on-click-modal="false"
-        @close="cancelReferencePreview"
-      >
+      <el-dialog v-model="showPreviewDialogReference" title="参考图预览" width="800px" :close-on-click-modal="false"
+        @close="cancelReferencePreview">
         <div class="upload-modal-content">
           <div class="upload-area">
             <div v-if="previewImageReference" class="file-preview">
               <img :src="previewImageReference" alt="参考图预览" class="preview-img" />
             </div>
             <div v-else class="upload-placeholder">
-              <el-icon><Camera /></el-icon>
+              <el-icon>
+                <Camera />
+              </el-icon>
               <span>请先选择图片</span>
               <p class="upload-tip">支持 JPG、PNG 格式，最大 10MB</p>
             </div>
@@ -263,30 +256,22 @@
       </el-dialog>
 
       <!-- 主图编辑弹窗 -->
-      <el-dialog 
-        v-model="showEditDialogMain" 
-        title="主图编辑" 
-        width="50%" 
-        :close-on-click-modal="false" 
-        class="edit-dialog"
-      >
+      <el-dialog v-model="showEditDialogMain" title="主图编辑" width="50%" :close-on-click-modal="false"
+        class="edit-dialog">
         <div class="edit-modal-content">
           <Suspense>
             <template #default>
               <div class="image-workspace-container">
-                <ImageWorkspaceComp
-                  :key="mainImage"
-                  :image-url="mainImage"
-                  :original-image-name="mainImageId?.toString()"
-                  @image-edited="handleMainImageEdited"
-                  @editing-completed="closeEditDialogMain"
-                  :hideMaskTool="true"
-                />
+                <ImageWorkspaceComp :key="mainImage" :image-url="mainImage"
+                  :original-image-name="mainImageId?.toString()" @image-edited="handleMainImageEdited"
+                  @editing-completed="closeEditDialogMain" :hideMaskTool="true" />
               </div>
             </template>
             <template #fallback>
               <div class="loading-state">
-                <el-icon class="loading-icon"><Loading /></el-icon>
+                <el-icon class="loading-icon">
+                  <Loading />
+                </el-icon>
                 <p>加载中...</p>
               </div>
             </template>
@@ -301,30 +286,22 @@
       </el-dialog>
 
       <!-- 参考图编辑弹窗 -->
-      <el-dialog 
-        v-model="showEditDialogReference" 
-        title="参考图编辑" 
-        width="50%" 
-        :close-on-click-modal="false" 
-        class="edit-dialog"
-      >
+      <el-dialog v-model="showEditDialogReference" title="参考图编辑" width="50%" :close-on-click-modal="false"
+        class="edit-dialog">
         <div class="edit-modal-content">
           <Suspense>
             <template #default>
               <div class="image-workspace-container">
-                <ImageWorkspaceComp
-                  :key="referenceImage"
-                  :image-url="referenceImage"
-                  :original-image-name="referenceImageId?.toString()"
-                  @image-edited="handleReferenceImageEdited"
-                  @editing-completed="closeEditDialogReference"
-                  :hideMaskTool="true"
-                />
+                <ImageWorkspaceComp :key="referenceImage" :image-url="referenceImage"
+                  :original-image-name="referenceImageId?.toString()" @image-edited="handleReferenceImageEdited"
+                  @editing-completed="closeEditDialogReference" :hideMaskTool="true" />
               </div>
             </template>
             <template #fallback>
               <div class="loading-state">
-                <el-icon class="loading-icon"><Loading /></el-icon>
+                <el-icon class="loading-icon">
+                  <Loading />
+                </el-icon>
                 <p>加载中...</p>
               </div>
             </template>
@@ -339,42 +316,27 @@
       </el-dialog>
 
       <!-- 智能分割弹窗 -->
-      <SmartSelection
-        v-if="showSmartSelection"
-        :visible="showSmartSelection"
-        :image-id="smartSelectionImageId || undefined"
-        :image-url="smartSelectionImageUrl"
-        @update:visible="val => showSmartSelection.value = val"
-        @selection-complete="onSmartSelectionComplete"
-      />
+      <SmartSelection v-if="showSmartSelection" :visible="showSmartSelection"
+        :image-id="smartSelectionImageId || undefined" :image-url="smartSelectionImageUrl"
+        @update:visible="val => showSmartSelection.value = val" @selection-complete="onSmartSelectionComplete" />
 
       <!-- 主图放大预览弹窗 -->
-      <el-dialog v-model="showZoomDialogMain" width="80vw" :close-on-click-modal="true" :modal-style="{ height: '78vh' }" style="height:78vh;" class="zoom-dialog">
-        <div
-          class="zoom-img-container"
-          @wheel="handleZoomWheelMain"
-          style="height:calc(78vh - 60px);display:flex;align-items:center;justify-content:center;overflow:hidden;"
-        >
-          <img
-            :src="mainImage"
-            alt="放大预览"
-            :style="`max-width:100%;max-height:78vh;transform:scale(${zoomMain});transition:transform 0.2s;display:block;margin:auto;`"
-          />
+      <el-dialog v-model="showZoomDialogMain" width="80vw" :close-on-click-modal="true"
+        :modal-style="{ height: '78vh' }" style="height:78vh;" class="zoom-dialog">
+        <div class="zoom-img-container" @wheel="handleZoomWheelMain"
+          style="height:calc(78vh - 60px);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+          <img :src="mainImage" alt="放大预览"
+            :style="`max-width:100%;max-height:78vh;transform:scale(${zoomMain});transition:transform 0.2s;display:block;margin:auto;`" />
         </div>
         <div style="margin-top:8px;color:#222;text-align:center;">缩放：{{ (zoomMain * 100).toFixed(0) }}%</div>
       </el-dialog>
       <!-- 参考图放大预览弹窗 -->
-      <el-dialog v-model="showZoomDialogReference" width="80vw" :close-on-click-modal="true" :modal-style="{ height: '78vh' }" style="height:78vh;" class="zoom-dialog">
-        <div
-          class="zoom-img-container"
-          @wheel="handleZoomWheelReference"
-          style="height:calc(78vh - 60px);display:flex;align-items:center;justify-content:center;overflow:hidden;"
-        >
-          <img
-            :src="referenceImage"
-            alt="放大预览"
-            :style="`max-width:100%;max-height:78vh;transform:scale(${zoomReference});transition:transform 0.2s;display:block;margin:auto;`"
-          />
+      <el-dialog v-model="showZoomDialogReference" width="80vw" :close-on-click-modal="true"
+        :modal-style="{ height: '78vh' }" style="height:78vh;" class="zoom-dialog">
+        <div class="zoom-img-container" @wheel="handleZoomWheelReference"
+          style="height:calc(78vh - 60px);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+          <img :src="referenceImage" alt="放大预览"
+            :style="`max-width:100%;max-height:78vh;transform:scale(${zoomReference});transition:transform 0.2s;display:block;margin:auto;`" />
         </div>
         <div style="margin-top:8px;color:#222;text-align:center;">缩放：{{ (zoomReference * 100).toFixed(0) }}%</div>
       </el-dialog>
@@ -400,7 +362,7 @@ import { startAiTaskWs, stopAiTaskWs } from '../../utils/wsTask'
 const emit = defineEmits(['exitResults'])
 
 // 直接引入异步组件
-const ImageWorkspaceComp = defineAsyncComponent(() => 
+const ImageWorkspaceComp = defineAsyncComponent(() =>
   import('./ImageWorkspace.vue')
 )
 
@@ -499,7 +461,23 @@ function handleZoomWheelReference(e) {
 
 // 计算属性
 const canGenerate = computed(() => {
-  return !!mainImage.value && !!referenceImage.value && mainImageId.value !== null && referenceImageId.value !== null
+  const hasMainImage = !!mainImage.value
+  const hasReferenceImage = !!referenceImage.value
+  const hasMainImageId = mainImageId.value !== null && mainImageId.value !== '' && mainImageId.value !== undefined
+  const hasReferenceImageId = referenceImageId.value !== null && referenceImageId.value !== undefined
+
+  const result = hasMainImage && hasReferenceImage && hasMainImageId && hasReferenceImageId
+
+  console.log('🔍 canGenerate 计算:', {
+    hasMainImage,
+    hasReferenceImage,
+    mainImageId: mainImageId.value,
+    hasMainImageId,
+    referenceImageId: referenceImageId.value,
+    hasReferenceImageId,
+    result
+  })
+  return result
 })
 
 // 步骤控制方法
@@ -513,7 +491,7 @@ const setStep = (step: number) => {
 const handleModelSelect = (modelId: number, model: any) => {
   console.log('选择的模型:', model)
   selectedModel.value = modelId
-  
+
   // 保存选择的鞋子类型名称
   if (model && model.name) {
     selectedModelName.value = model.name
@@ -549,10 +527,10 @@ const handleMainFileSelect = (event: Event) => {
 
 const confirmMainPreview = () => {
   if (!selectedFileMain.value) return;
-  
+
   // 主图上传时重置结果状态
   resetResultStates();
-  
+
   // creativeImg 模式下，上传 creativeImgFile
   uploadFile(selectedFileMain.value, 'input', (imageUrl, imageId) => {
     if (imageId) mainImageId.value = typeof imageId === 'number' ? imageId : parseInt(imageId, 10);
@@ -612,10 +590,10 @@ const handleReferenceFileSelect = (event: Event) => {
 
 const confirmReferencePreview = () => {
   if (!selectedFileReference.value) return;
-  
+
   // 副图上传时重置结果状态
   resetResultStates();
-  
+
   // 上传前log
   console.log('[StyleFusion] 新图片赋值 referenceImage.value =', previewImageReference.value)
   uploadFile(selectedFileReference.value, 'input', (imageUrl, imageId) => {
@@ -649,24 +627,36 @@ const cancelReferencePreview = () => {
 // 编辑弹窗相关方法
 const closeEditDialogMain = () => {
   showEditDialogMain.value = false;
+  // 确保在关闭编辑弹窗时检查是否有有效的图片ID
+  console.log('🔍 关闭主图编辑弹窗，当前mainImageId:', mainImageId.value);
 };
 
 const closeEditDialogReference = () => {
   showEditDialogReference.value = false;
+  // 确保在关闭编辑弹窗时检查是否有有效的图片ID
+  console.log('🔍 关闭参考图编辑弹窗，当前referenceImageId:', referenceImageId.value);
 };
 
 const handleMainImageEdited = (editedImageUrl: string, imageId?: number | string) => {
+  console.log('🔍 主图编辑完成:', { editedImageUrl, imageId });
   mainImage.value = editedImageUrl;
   if (imageId !== undefined && imageId !== null && imageId !== '') {
     mainImageId.value = typeof imageId === 'number' ? imageId : parseInt(imageId as string, 10);
+    console.log('🔍 更新主图ID为:', mainImageId.value);
+  } else {
+    console.log('⚠️ 主图编辑完成但没有获得有效的imageId');
   }
   showEditDialogMain.value = false;
 };
 
 const handleReferenceImageEdited = (editedImageUrl: string, imageId?: number | string) => {
+  console.log('🔍 参考图编辑完成:', { editedImageUrl, imageId });
   referenceImage.value = editedImageUrl;
-  if (imageId !== undefined) {
+  if (imageId !== undefined && imageId !== null && imageId !== '') {
     referenceImageId.value = typeof imageId === 'number' ? imageId : parseInt(imageId as string, 10);
+    console.log('🔍 更新参考图ID为:', referenceImageId.value);
+  } else {
+    console.log('⚠️ 参考图编辑完成但没有获得有效的imageId');
   }
   showEditDialogReference.value = false;
 };
@@ -699,15 +689,15 @@ watch(() => shoeStore.aiTaskImages, (newImages) => {
 // 重置结果相关状态的函数
 const resetResultStates = () => {
   console.log('🔄 重置款式融合结果相关状态');
-  
+
   // 重置结果显示状态
   isViewingResults.value = false;
   generatedImages.value = [];
   isProcessingStyleFusionTask.value = false;
-  
+
   // 重置store中的图片结果
   shoeStore.setAiTaskImages([]);
-  
+
   console.log('✅ 款式融合结果状态已重置');
 };
 
@@ -743,13 +733,13 @@ const handleGenerate = async () => {
 
   // 在开始生成前重置结果状态，确保不会显示之前的结果
   resetResultStates();
-  
+
   // 停止之前的WebSocket连接
   stopAiTaskWs();
 
   try {
     isProcessingStyleFusionTask.value = true; // 设置为款式融合任务进行中
-    
+
     // 使用当前上传的图片ID，避免使用全局状态中的旧ID
     const majorIdToUse = typeof mainImageId.value === 'number' ? mainImageId.value : parseInt(mainImageId.value as string, 10)
     console.log("🔍 款式融合调试信息:", {
@@ -760,7 +750,7 @@ const handleGenerate = async () => {
     });
 
     // 准备请求参数
-    const requestData: StrhzxsRequest = { 
+    const requestData: StrhzxsRequest = {
       loreName: selectedModel.value !== 0 ? selectedModelName.value : '元素',
       majorId: majorIdToUse,
       minorId: referenceImageId.value,
@@ -768,7 +758,7 @@ const handleGenerate = async () => {
       minorStrength: Math.max(0.1, fusionStrength.value / 10),
       structuralStrength: Math.max(0.1, structureStrength.value / 10)
     };
-    
+
     // 发送请求
     console.log("发送款式融合请求:", requestData);
     const response = await strhzxs(requestData);
@@ -784,13 +774,13 @@ const handleGenerate = async () => {
     if (result && typeof result === 'string') {
       const taskId = result;
       console.log('获得taskId:', taskId);
-      
+
       // 确保之前的WebSocket连接已经停止
       stopAiTaskWs();
-      
+
       // 启动新的WebSocket监听
       startAiTaskWs(taskId, 'style-fusion');
-      
+
       ElMessage.success("款式融合任务已提交，正在处理中...");
       // 必须等待WebSocket到达100%才出图，不再直接处理结果
     } else {
@@ -806,12 +796,12 @@ const handleGenerate = async () => {
 // 处理API响应
 const handleApiResponse = async (response: any) => {
   console.log('API响应数据:', response)
-  
+
   // 检查响应结构
   if (!response || typeof response !== 'object') {
     throw new Error('无效的API响应')
   }
-  
+
   // 处理直接返回整个响应对象的情况
   const data = response.data ? response : response.data
 
@@ -819,7 +809,7 @@ const handleApiResponse = async (response: any) => {
   if (data.code === 0 || data.code === 200) {
     // 兼容不同的返回格式
     let viewUrls: string[] = [];
-    
+
     if (data.data && data.data.viewUrls) {
       // 标准格式：{code: 0/200, msg: "", data: {promptId: "", viewUrls: [...]}}
       viewUrls = data.data.viewUrls;
@@ -829,16 +819,16 @@ const handleApiResponse = async (response: any) => {
     } else {
       throw new Error('找不到生成的图片链接');
     }
-    
+
     console.log('提取的图片链接:', viewUrls);
-      
+
     // 保存生成的图片URL
     if (Array.isArray(viewUrls) && viewUrls.length > 0) {
       generatedImages.value = viewUrls;
-      
+
       // 显示结果
       isViewingResults.value = true;
-        
+
       // 如果有resultsWorkspaceRef，调用其showResults方法
       if (resultsWorkspaceRef.value) {
         try {
@@ -855,7 +845,7 @@ const handleApiResponse = async (response: any) => {
           resultsWorkspaceRef.value.resultImages = generatedImages.value
         }
       }
-        
+
       ElMessage.success('图片生成成功')
     } else {
       ElMessage.warning('生成成功但未获得图片')
@@ -883,11 +873,11 @@ const dataURLtoBlob = (dataURL: string) => {
   const contentType = parts[0].split(':')[1]
   const raw = window.atob(parts[1])
   const uInt8Array = new Uint8Array(raw.length)
-  
+
   for (let i = 0; i < raw.length; ++i) {
     uInt8Array[i] = raw.charCodeAt(i)
   }
-  
+
   return new Blob([uInt8Array], { type: contentType })
 }
 
@@ -1045,7 +1035,7 @@ const onSmartSelectionComplete = ({ mask, selectionType }: { mask: string; selec
   smartSelectionMask.value = mask
   showSmartSelection.value = false
   ElMessage.success('智能分割完成，掩码已获取')
-  
+
   // 监听掩码变化，高亮显示
   nextTick(() => {
     if (mainMaskCanvas.value && mainImage.value && mask) {
@@ -1058,34 +1048,34 @@ const onSmartSelectionComplete = ({ mask, selectionType }: { mask: string; selec
 const drawMaskHighlight = (imageUrl: string, maskBase64: string, canvas: HTMLCanvasElement) => {
   const ctx = canvas.getContext('2d')
   if (!ctx) return
-  
+
   const img = new Image()
   const maskImg = new Image()
   img.crossOrigin = 'anonymous'
   maskImg.crossOrigin = 'anonymous'
-  
+
   img.onload = () => {
     canvas.width = img.width
     canvas.height = img.height
     ctx.drawImage(img, 0, 0)
-    
+
     maskImg.onload = () => {
       const tempCanvas = document.createElement('canvas')
       tempCanvas.width = img.width
       tempCanvas.height = img.height
       const tempCtx = tempCanvas.getContext('2d')
       if (!tempCtx) return
-      
+
       tempCtx.drawImage(maskImg, 0, 0, img.width, img.height)
       const maskData = tempCtx.getImageData(0, 0, img.width, img.height)
       const imageData = ctx.getImageData(0, 0, img.width, img.height)
-      
+
       for (let i = 0; i < maskData.data.length; i += 4) {
-        if (maskData.data[i+3] > 128) {
+        if (maskData.data[i + 3] > 128) {
           imageData.data[i] = 0      // R
-          imageData.data[i+1] = 180  // G
-          imageData.data[i+2] = 255  // B
-          imageData.data[i+3] = 180  // A (0-255, 180约等于0.7透明度)
+          imageData.data[i + 1] = 180  // G
+          imageData.data[i + 2] = 255  // B
+          imageData.data[i + 3] = 180  // A (0-255, 180约等于0.7透明度)
         }
       }
       ctx.putImageData(imageData, 0, 0)
@@ -1107,8 +1097,8 @@ function dataURLtoFile(dataurl: string, filename: string): File {
   const bstr = atob(arr[1].split('base64,')[1]);
   let n = bstr.length;
   const u8arr = new Uint8Array(n);
-  while(n--) u8arr[n] = bstr.charCodeAt(n);
-  return new File([u8arr], filename, {type:mime});
+  while (n--) u8arr[n] = bstr.charCodeAt(n);
+  return new File([u8arr], filename, { type: mime });
 }
 
 onMounted(async () => {
@@ -1633,26 +1623,29 @@ onUnmounted(() => {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
 }
 
 :deep(.el-dialog__footer .el-button--primary) {
-  background:linear-gradient(90deg, #00A3FF, #0AFFFF);
+  background: linear-gradient(90deg, #00A3FF, #0AFFFF);
   border: none;
   color: #fff;
 }
+
 :deep(.el-dialog__footer .el-button--primary:hover) {
   filter: brightness(1.08);
   box-shadow: 0 4px 12px rgba(200, 173, 127, 0.25);
 }
+
 .zoom-icon-btn {
   position: absolute;
   top: 8px;
   right: 8px;
   z-index: 3;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   border: none;
   border-radius: 50%;
   padding: 6px;
@@ -1660,29 +1653,35 @@ onUnmounted(() => {
   color: #fff;
   transition: background 0.2s;
 }
+
 .zoom-icon-btn:hover {
   background: #c8ad7f;
   color: #222;
 }
+
 .zoom-icon-btn .el-icon {
   font-size: 20px;
 }
+
 .zoom-img-container {
   width: 100%;
   height: 100%;
   overflow: hidden;
   background: transparent;
 }
+
 :deep(.el-dialog.zoom-dialog) {
   background: #fff !important;
   border: none !important;
   color: #222 !important;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.10) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.10) !important;
 }
+
 :deep(.el-dialog.zoom-dialog .el-dialog__body) {
   background: #fff !important;
   color: #222 !important;
 }
+
 :deep(.el-dialog.zoom-dialog .el-dialog__header) {
   background: #fff !important;
   color: #222 !important;
@@ -1741,25 +1740,30 @@ onUnmounted(() => {
   max-width: 500px;
   width: 90%;
 }
+
 .progress-bar-gold {
   margin-bottom: 8px;
 }
+
 .progress-percent {
   color: #00FF00;
   font-weight: bold;
   font-size: 32px;
   margin-bottom: 8px;
 }
+
 .percent-sign {
   font-size: 18px;
   margin-left: 2px;
 }
+
 .progress-title {
   color: #c8ad7f;
   font-weight: bold;
   font-size: 22px;
   margin-bottom: 10px;
 }
+
 .progress-desc {
   display: flex;
   align-items: center;
@@ -1769,6 +1773,7 @@ onUnmounted(() => {
   font-size: 16px;
   margin-bottom: 8px;
 }
+
 .progress-spinner {
   display: inline-block;
   width: 22px;
@@ -1778,15 +1783,23 @@ onUnmounted(() => {
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
+
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
+
 .progress-tip {
   color: rgba(255, 255, 255, 0.6);
   font-size: 14px;
   margin-top: 15px;
 }
+
 .progress-tip p {
   margin-bottom: 5px;
 }
@@ -1839,5 +1852,4 @@ onUnmounted(() => {
   font-size: 16px;
   font-weight: 500;
 }
-
-</style> 
+</style>
