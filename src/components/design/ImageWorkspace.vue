@@ -347,7 +347,7 @@
                     @contextmenu="handleSmartCutoutRightClick" @mousemove="handleSmartCutoutHover"
                     @mouseleave="clearHoverPreview"></canvas>
 
-                  <div class="overlay-mask"></div>
+                  <div v-show="isShowCanvas" class="overlay-mask"></div>
 
 
                   <!-- 悬浮预览层 -->
@@ -587,6 +587,8 @@ const isMaskAnimating = ref(false)
 const maskAnimationId = ref<number | null>(null)
 const smartCutoutContainerRef = ref<HTMLElement | null>(null)
 const cutoutResultCanvasRef = ref<HTMLCanvasElement | null>(null)
+const isShowCanvas = ref(false)
+
 
 // 简化缩放状态 - 使用CSS transform缩放
 const smartCutoutZoom = ref(1.0)
@@ -2073,6 +2075,7 @@ const clearCutoutResult = () => {
   isRequestingMask.value = false
 
   const canvas = cutoutResultCanvasRef.value
+  isShowCanvas.value = false
   if (canvas) {
     const ctx = canvas.getContext('2d')
     if (ctx) {
@@ -4298,6 +4301,10 @@ const drawBlueHighlightEdge = async (ctx: CanvasRenderingContext2D, maskImg: HTM
   }
 
   ctx.globalCompositeOperation = 'source-over'
+
+  if (cutoutResultCanvasRef) {
+    isShowCanvas.value = true
+  }
 }
 
 // 边缘检测算法
