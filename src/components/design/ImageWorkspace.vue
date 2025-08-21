@@ -347,6 +347,7 @@
                     @contextmenu="handleSmartCutoutRightClick" @mousemove="handleSmartCutoutHover"
                     @mouseleave="clearHoverPreview"></canvas>
 
+                  <div class="overlay-mask"></div>
 
 
                   <!-- 悬浮预览层 -->
@@ -4252,21 +4253,28 @@ const drawBlueHighlightEdge = async (ctx: CanvasRenderingContext2D, maskImg: HTM
   const scaleX = width / maskImg.width
   const scaleY = height / maskImg.height
 
-  // 1. 绘制半透明遮罩（非选中区域）
-  ctx.fillStyle = `rgba(0, 0, 0, ${0.6 * opacity})`
-  ctx.fillRect(0, 0, width, height)
+  const orgImage = smartCutoutImageRef.value
 
-  // 2. 清除选中区域的遮罩
-  ctx.globalCompositeOperation = 'destination-out'
-  for (let y = 0; y < maskImg.height; y++) {
-    for (let x = 0; x < maskImg.width; x++) {
-      const idx = (y * maskImg.width + x) * 4
-      const maskValue = maskData.data[idx] // 红色通道
+  if (!orgImage) {
+    return
+  }
 
-      if (maskValue > 128) { // 白色区域（选中区域）
-        const canvasX = Math.floor(x * scaleX)
-        const canvasY = Math.floor(y * scaleY)
-        ctx.fillRect(canvasX, canvasY, Math.ceil(scaleX), Math.ceil(scaleY))
+  ctx.globalCompositeOperation = 'source-over';
+  for (let y = 0; y < maskData.height; y++) {
+    for (let x = 0; x < maskData.width; x++) {
+      const idx = (y * maskData.width + x) * 4;
+      const maskValue = maskData.data[idx];
+
+      if (maskValue > 128) { // 选中区域
+        const canvasX = Math.floor(x * scaleX);
+        const canvasY = Math.floor(y * scaleY);
+
+        // 将对应区域的原图绘制到中间层
+        ctx.drawImage(
+            orgImage,
+            x, y, 1, 1, // 原图坐标
+            canvasX, canvasY, Math.ceil(scaleX), Math.ceil(scaleY)
+        );
       }
     }
   }
@@ -6950,6 +6958,31 @@ const updatePointMarkersScale = () => {
   width: auto !important;
   height: auto !important;
   object-fit: contain !important;
+}
+
+.smart-cutout-image-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.smart-cutout-image {
+  display: block;
+}
+
+.smart-cutout-canvas,
+.overlay-mask,
+.cutout-result-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* 半透明黑色蒙板 */
+.overlay-mask {
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  pointer-events: none; /* 不阻挡鼠标事件 */
 }
 
 /* 智能抠图图片显示为实际尺寸1024x1024 */
