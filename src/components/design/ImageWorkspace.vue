@@ -223,7 +223,7 @@
     <!-- 工具弹窗 -->
     <el-dialog v-model="isToolModalVisible" :title="toolModalTitle" :show-close="true" :close-on-click-modal="false"
       :close-on-press-escape="true" :class="currentTool === 'smart-cutout' ? '' : 'tool-modal'" destroy-on-close
-      width="65%" top="12vh" @close="closeToolModal" @before-close="handleDialogBeforeClose" style="margin-left: 12%;">
+       top="12vh" @close="closeToolModal" @before-close="handleDialogBeforeClose" style="width: 1100px;margin: auto">
       <div class="tool-modal-content">
         <!-- 工具弹窗内的图片区域 -->
         <div class="tool-modal-workspace">
