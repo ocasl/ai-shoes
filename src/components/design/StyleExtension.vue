@@ -14,13 +14,8 @@
         <div v-if="shoeStore.aiTaskStatus === 'running'" class="loading-overlay">
           <div class="loading-container">
             <div class="loading-spinner"></div>
-            <el-progress 
-              :percentage="shoeStore.aiTaskProgress" 
-              :stroke-width="8"
-              :show-text="false"
-              color="#c8ad7f"
-              class="loading-progress"
-            />
+            <el-progress :percentage="shoeStore.aiTaskProgress" :stroke-width="8" :show-text="false" color="#c8ad7f"
+              class="loading-progress" />
             <div class="loading-percentage">{{ shoeStore.aiTaskProgress }}%</div>
             <div class="loading-text">AI任务执行中</div>
           </div>
@@ -44,10 +39,14 @@
                 <span class="step-title">Step 1</span>
                 <span class="step-desc">上传要改款的鞋款</span>
                 <el-tooltip content="帮助信息" placement="top">
-                  <el-icon><QuestionFilled /></el-icon>
+                  <el-icon>
+                    <QuestionFilled />
+                  </el-icon>
                 </el-tooltip>
                 <span v-if="mainImage" class="step-status">
-                  <el-icon><Check /></el-icon>
+                  <el-icon>
+                    <Check />
+                  </el-icon>
                 </span>
               </div>
               <div class="upload-section">
@@ -55,18 +54,25 @@
                   <div v-if="mainImage" class="preview-container" style="position:relative;">
                     <img :src="mainImage" alt="主图预览" class="preview-img" crossorigin="anonymous" />
                     <div class="change-overlay">
-                      <el-icon><Plus /></el-icon>
+                      <el-icon>
+                        <Plus />
+                      </el-icon>
                       <span>更换图片</span>
                     </div>
                     <button class="zoom-icon-btn" @click.stop="showZoomDialogMain = true">
-                      <el-icon><ZoomIn /></el-icon>
+                      <el-icon>
+                        <ZoomIn />
+                      </el-icon>
                     </button>
                   </div>
                   <div v-else class="upload-placeholder">
-                    <el-icon><Plus /></el-icon>
+                    <el-icon>
+                      <Plus />
+                    </el-icon>
                     <span>点击上传图片</span>
                   </div>
-                  <input ref="fileInputMain" type="file" accept="image/*" style="display:none" @change="handleMainFileSelect" />
+                  <input ref="fileInputMain" type="file" accept="image/*" style="display:none"
+                    @change="handleMainFileSelect" />
                 </div>
               </div>
             </div>
@@ -88,14 +94,8 @@
             </template>
             <template v-if="isViewingResults">
               <div class="image-workspace-container">
-                <ImageWorkspaceComp
-                  :is-view-results="true"
-                  :result-images="resultDialogImages"
-                  :image-url="mainImage"
-                  :original-image-name="mainImageName"
-                  @exit-results="exitResultsView"
-                  ref="resultsWorkspaceRef"
-                />
+                <ImageWorkspaceComp :is-view-results="true" :result-images="resultDialogImages" :image-url="mainImage"
+                  :original-image-name="mainImageName" @exit-results="exitResultsView" ref="resultsWorkspaceRef" />
               </div>
             </template>
           </div>
@@ -115,90 +115,31 @@
                 </div>
               </div>
               <div class="model-selection">
-                <ModelSelector 
-                  v-model="selectedModel"
-                  @select="handleModelSelect"
-                  @load-error="handleModelLoadError"
-                  :require-login="true"
-                />
+                <ModelSelector v-model="selectedModel" @select="handleModelSelect" @load-error="handleModelLoadError"
+                  :require-login="true" />
               </div>
             </div>
 
-            <!-- 材质选择区域 -->
-            <div class="step-section">
-              <div class="step-header">
-                <span class="step-title">Step 3</span>
-                <span class="step-desc">材质参考</span>
-                <el-tooltip content="选择材质作为设计参考" placement="top">
-                  <el-icon><QuestionFilled /></el-icon>
-                </el-tooltip>
-              </div>
-              
-              <div class="material-section">
-                <!-- 已选择的材质 -->
-                <div v-if="selectedMaterial" class="selected-material">
-                  <div class="material-preview">
-                    <img :src="selectedMaterial.ossPath" :alt="selectedMaterial.name" class="material-thumb" />
-                    <div class="material-info">
-                      <div class="material-name">{{ selectedMaterial.name }}</div>
-                      <div class="material-type">{{ selectedMaterial.type === 0 ? '系统材质' : '用户材质' }}</div>
-                    </div>
-                    <el-button
-                      circle
-                      size="small"
-                      type="danger"
-                      :icon="Close"
-                      @click="clearMaterial"
-                      title="移除材质"
-                    />
-                  </div>
-                </div>
-                
-                <!-- 材质选择按钮 -->
-                <div v-else class="material-selector">
-                  <el-button
-                    type="primary"
-                    :icon="Collection"
-                    @click="showMaterialSelector = true"
-                    class="select-material-btn"
-                  >
-                    选择材质参考
-                  </el-button>
-                  <div class="material-hint">
-                    <el-text size="small" type="info">
-                      材质参考可以影响生成的款式风格
-                    </el-text>
-                  </div>
-                </div>
-              </div>
-            </div>
+
 
             <!-- 生成按钮 -->
-            <el-button 
-              type="primary" 
-              class="generate-btn" 
-              @click="handleGenerate"
-              :disabled="!canGenerate"
-            >
+            <el-button type="primary" class="generate-btn" @click="handleGenerate" :disabled="!canGenerate">
               {{ shoeStore.aiTaskStatus === 'running' ? '生成中...' : '立即生成' }}
             </el-button>
           </div>
 
           <!-- 主图本地预览弹窗 -->
-          <el-dialog 
-            v-model="showPreviewDialogMain" 
-            title="主图预览" 
-            width="800px" 
-            :close-on-click-modal="false"
-            @close="cancelMainPreview"
-          >
+          <el-dialog v-model="showPreviewDialogMain" title="主图预览" width="800px" :close-on-click-modal="false"
+            @close="cancelMainPreview">
             <div class="upload-modal-content">
               <div class="upload-area">
                 <div v-if="previewImageMain" class="file-preview">
                   <img :src="previewImageMain" alt="主图预览" class="preview-img" />
                 </div>
                 <div v-else class="upload-placeholder">
-                  <el-icon><Plus /></el-icon>
+                  <el-icon>
+                    <Plus />
+                  </el-icon>
                   <span>请先选择图片</span>
                   <p class="upload-tip">支持 JPG、PNG 格式，最大 10MB</p>
                 </div>
@@ -213,28 +154,21 @@
           </el-dialog>
 
           <!-- 主图编辑弹窗 -->
-          <el-dialog 
-            v-model="showEditDialogMain" 
-            title="主图编辑" 
-            width="50%" 
-            :close-on-click-modal="false" 
-            class="edit-dialog"
-          >
+          <el-dialog v-model="showEditDialogMain" title="主图编辑" width="50%" :close-on-click-modal="false"
+            class="edit-dialog">
             <div class="edit-modal-content">
               <Suspense>
                 <template #default>
                   <div class="image-workspace-container">
-                    <ImageWorkspaceComp
-                      :image-url="mainImage"
-                      @image-edited="handleMainImageEdited"
-                      @editing-completed="closeEditDialogMain"
-                      :hide-mask-tool="true"
-                    />
+                    <ImageWorkspaceComp :image-url="mainImage" @image-edited="handleMainImageEdited"
+                      @editing-completed="closeEditDialogMain" :hide-mask-tool="true" />
                   </div>
                 </template>
                 <template #fallback>
                   <div class="loading-state">
-                    <el-icon class="loading-icon"><Loading /></el-icon>
+                    <el-icon class="loading-icon">
+                      <Loading />
+                    </el-icon>
                     <p>加载中...</p>
                   </div>
                 </template>
@@ -249,18 +183,15 @@
           </el-dialog>
 
           <!-- 结果查看弹窗 -->
-          <el-dialog 
-            v-model="showResultDialog" 
-            title="结果查看" 
-            width="800px" 
-            :close-on-click-modal="false"
-            @close="closeResultDialog"
-          >
+          <el-dialog v-model="showResultDialog" title="结果查看" width="800px" :close-on-click-modal="false"
+            @close="closeResultDialog">
             <div class="result-dialog-content">
               <div class="image-preview" style="position:relative;">
                 <img :src="resultDialogImages[resultDialogIndex]" alt="结果预览" class="preview-img" />
                 <button class="zoom-icon-btn" @click.stop="showZoomDialog = true" v-if="resultDialogImages.length">
-                  <el-icon><ZoomIn /></el-icon>
+                  <el-icon>
+                    <ZoomIn />
+                  </el-icon>
                 </button>
               </div>
             </div>
@@ -272,44 +203,28 @@
           </el-dialog>
 
           <!-- 结果图放大预览弹窗 -->
-          <el-dialog v-model="showZoomDialog" width="80vw" :close-on-click-modal="true" :modal-style="{ height: '78vh' }" style="height:78vh;" class="zoom-dialog">
-            <div
-              class="zoom-img-container"
-              @wheel="handleZoomWheel"
-              style="height:calc(78vh - 60px);display:flex;align-items:center;justify-content:center;overflow:hidden;"
-            >
-              <img
-                :src="resultDialogImages[resultDialogIndex]"
-                alt="放大预览"
-                :style="`max-width:100%;max-height:78vh;transform:scale(${zoom});transition:transform 0.2s;display:block;margin:auto;`"
-              />
+          <el-dialog v-model="showZoomDialog" width="80vw" :close-on-click-modal="true"
+            :modal-style="{ height: '78vh' }" style="height:78vh;" class="zoom-dialog">
+            <div class="zoom-img-container" @wheel="handleZoomWheel"
+              style="height:calc(78vh - 60px);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+              <img :src="resultDialogImages[resultDialogIndex]" alt="放大预览"
+                :style="`max-width:100%;max-height:78vh;transform:scale(${zoom});transition:transform 0.2s;display:block;margin:auto;`" />
             </div>
             <div style="margin-top:8px;color:#222;text-align:center;">缩放：{{ (zoom * 100).toFixed(0) }}%</div>
           </el-dialog>
 
           <!-- 主图放大预览弹窗 -->
-          <el-dialog v-model="showZoomDialogMain" width="80vw" :close-on-click-modal="true" :modal-style="{ height: '78vh' }" style="height:78vh;" class="zoom-dialog">
-            <div
-              class="zoom-img-container"
-              @wheel="handleZoomWheelMain"
-              style="height:calc(78vh - 60px);display:flex;align-items:center;justify-content:center;overflow:hidden;"
-            >
-              <img
-                :src="mainImage"
-                alt="放大预览"
-                :style="`max-width:100%;max-height:78vh;transform:scale(${zoomMain});transition:transform 0.2s;display:block;margin:auto;`"
-              />
+          <el-dialog v-model="showZoomDialogMain" width="80vw" :close-on-click-modal="true"
+            :modal-style="{ height: '78vh' }" style="height:78vh;" class="zoom-dialog">
+            <div class="zoom-img-container" @wheel="handleZoomWheelMain"
+              style="height:calc(78vh - 60px);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+              <img :src="mainImage" alt="放大预览"
+                :style="`max-width:100%;max-height:78vh;transform:scale(${zoomMain});transition:transform 0.2s;display:block;margin:auto;`" />
             </div>
             <div style="margin-top:8px;color:#222;text-align:center;">缩放：{{ (zoomMain * 100).toFixed(0) }}%</div>
           </el-dialog>
 
-          <!-- 材质选择器弹窗 -->
-          <MaterialSelector
-            v-model:visible="showMaterialSelector"
-            :multiple="false"
-            @select="handleMaterialSelect"
-            @cancel="showMaterialSelector = false"
-          />
+
         </div>
       </div>
     </div>
@@ -318,7 +233,7 @@
 
 <script setup lang="ts">
 import { ref, defineAsyncComponent, computed, onMounted, nextTick, watch, onUnmounted } from 'vue'
-import { Plus, QuestionFilled, Check, Loading, ZoomIn, Close, Collection } from '@element-plus/icons-vue'
+import { Plus, QuestionFilled, Check, Loading, ZoomIn } from '@element-plus/icons-vue'
 import type { UploadInstance } from 'element-plus'
 import { ElMessage, ElLoading, ElMessageBox } from 'element-plus'
 import ModelSelector from '../common/ModelSelector.vue'
@@ -329,14 +244,11 @@ import { useShoeStore } from '../../store'
 import { startAiTaskWs, stopAiTaskWs } from '../../utils/wsTask'
 
 // 异步加载图片工作区组件
-const ImageWorkspaceComp = defineAsyncComponent(() => 
+const ImageWorkspaceComp = defineAsyncComponent(() =>
   import('./ImageWorkspace.vue')
 )
 
-// 异步加载材质选择器组件
-const MaterialSelector = defineAsyncComponent(() => 
-  import('../material/MaterialSelector.vue')
-)
+
 
 // 获取路由器
 const router = useRouter()
@@ -366,23 +278,7 @@ const resultsWorkspaceRef = ref(null)
 // 新增：跟踪是否正在处理款式延伸任务
 const isProcessingStyleExtensionTask = ref(false)
 
-// 材质选择相关状态
-const showMaterialSelector = ref(false)
-const selectedMaterial = ref<any>(null)
 
-// 材质选择处理方法
-const handleMaterialSelect = (materials: any[]) => {
-  if (materials && materials.length > 0) {
-    selectedMaterial.value = materials[0] // 单选模式，取第一个
-    ElMessage.success(`已选择材质参考: ${selectedMaterial.value.name}`)
-  }
-  showMaterialSelector.value = false
-}
-
-const clearMaterial = () => {
-  selectedMaterial.value = null
-  ElMessage.info('已移除材质参考')
-}
 
 // 引用上传组件
 const mainImageUploadRef = ref<UploadInstance | null>(null)
@@ -469,7 +365,7 @@ const handleMainFileSelect = (event: Event) => {
 const confirmMainPreview = () => {
   // 主图上传时重置结果状态
   resetResultStates();
-  
+
   let fileToUpload: File | null = null;
   const doUpload = (file: File) => {
     uploadFile(file, 'input', (_, imageId) => {
@@ -664,7 +560,7 @@ const handleResultSelected = () => {
 const handleModelSelect = (modelId: number, model: any) => {
   console.log('选择的模型:', model)
   selectedModel.value = modelId
-  
+
   // 保存选择的鞋子类型名称
   if (model && model.name) {
     selectedModelName.value = model.name
@@ -684,7 +580,7 @@ const exitResultsView = () => {
   isViewingResults.value = false;
   generatedImages.value = [];
   resultDialogImages.value = []; // 同时重置 resultDialogImages
-  
+
   // 如果resultsWorkspaceRef存在，也重置它的状态
   if (resultsWorkspaceRef.value) {
     try {
@@ -706,12 +602,12 @@ watch(() => shoeStore.aiTaskImages, (newImages) => {
       generatedImages.value = newImages
       resultDialogImages.value = newImages // 同时设置 resultDialogImages
       isViewingResults.value = true
-      
+
       // 如果有resultsWorkspaceRef，调用其showResults方法
       if (resultsWorkspaceRef.value) {
         resultsWorkspaceRef.value.showResults(newImages)
       }
-      
+
       ElMessage.success("款式延伸生成成功");
       isProcessingStyleExtensionTask.value = false // 重置任务状态
     }
@@ -721,16 +617,16 @@ watch(() => shoeStore.aiTaskImages, (newImages) => {
 // 重置结果相关状态的函数
 const resetResultStates = () => {
   console.log('🔄 重置款式延伸结果相关状态');
-  
+
   // 重置结果显示状态
   isViewingResults.value = false;
   generatedImages.value = [];
   resultDialogImages.value = [];
   isProcessingStyleExtensionTask.value = false;
-  
+
   // 重置store中的图片结果
   shoeStore.setAiTaskImages([]);
-  
+
   console.log('✅ 款式延伸结果状态已重置');
 };
 
@@ -766,13 +662,13 @@ const handleGenerate = async () => {
 
   // 在开始生成前重置结果状态，确保不会显示之前的结果
   resetResultStates();
-  
+
   // 停止之前的WebSocket连接
   stopAiTaskWs();
 
   try {
     isProcessingStyleExtensionTask.value = true; // 设置为款式延伸任务进行中
-    
+
     // 使用当前上传的图片ID，避免使用全局状态中的旧ID
     const imageIdToUse = parseInt(mainImageName.value)
     console.log("🔍 款式延伸调试信息:", {
@@ -782,12 +678,12 @@ const handleGenerate = async () => {
     });
 
     // 准备请求参数
-    const requestData: TstokRequest = { 
+    const requestData: TstokRequest = {
       imageId: imageIdToUse,
       loreName: selectedModelName.value || '通用款式生成',
-      denoise: denoiseValue.value 
+      denoise: denoiseValue.value
     };
-    
+
     // 发送请求
     console.log("发送款式延伸请求:", requestData);
     const response = await tstok(requestData);
@@ -804,13 +700,13 @@ const handleGenerate = async () => {
     if (result && typeof result === 'string') {
       const taskId = result;
       console.log('获得taskId:', taskId);
-      
+
       // 确保之前的WebSocket连接已经停止
       stopAiTaskWs();
-      
+
       // 启动新的WebSocket监听
       startAiTaskWs(taskId, 'style-extension');
-      
+
       ElMessage.success('款式延伸任务已提交，正在处理中...');
       // 必须等待WebSocket到达100%才出图，不再直接处理结果
     } else {
@@ -868,6 +764,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: row;
 }
+
 .side-menu {
   position: fixed;
   left: 0;
@@ -880,6 +777,7 @@ onUnmounted(() => {
   background: none;
   padding: 0;
 }
+
 .menu-link {
   color: #fff;
   font-size: 16px;
@@ -888,19 +786,23 @@ onUnmounted(() => {
   text-align: center;
   transition: color 0.2s;
 }
+
 .menu-link.router-link-active {
   color: #c8ad7f;
   font-weight: bold;
   text-decoration: underline;
 }
+
 .menu-link:hover {
   color: #c8ad7f;
 }
+
 .main-content {
   flex: 1;
- 
+
   min-height: 100vh;
 }
+
 .style-extension-container {
   width: 100%;
   min-height: 100vh;
@@ -1141,11 +1043,13 @@ onUnmounted(() => {
 :deep(.el-slider__bar) {
   background: linear-gradient(90deg, #c8ad7f 0%, #ffe7b2 100%) !important;
 }
+
 :deep(.el-slider__button) {
   border-color: #c8ad7f !important;
   background: #fffbe6 !important;
   box-shadow: 0 0 0 2px #c8ad7f33;
 }
+
 :deep(.el-slider__runway) {
   background: #f5e6c3 !important;
 }
@@ -1172,9 +1076,11 @@ onUnmounted(() => {
   justify-content: center;
   align-items: center;
 }
-.image-workspace-containers{
+
+.image-workspace-containers {
   height: 600px;
 }
+
 .instructions-container {
   width: 100%;
   height: 100%;
@@ -1331,6 +1237,7 @@ onUnmounted(() => {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -1359,23 +1266,26 @@ onUnmounted(() => {
   background: #fff !important;
   border: none !important;
   color: #222 !important;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.10) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.10) !important;
 }
+
 :deep(.el-dialog.zoom-dialog .el-dialog__body) {
   background: #fff !important;
   color: #222 !important;
 }
+
 :deep(.el-dialog.zoom-dialog .el-dialog__header) {
   background: #fff !important;
   color: #222 !important;
   border-bottom: 1px solid #eee !important;
 }
+
 .zoom-icon-btn {
   position: absolute;
   top: 8px;
   right: 8px;
   z-index: 3;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   border: none;
   border-radius: 50%;
   padding: 6px;
@@ -1383,13 +1293,16 @@ onUnmounted(() => {
   color: #fff;
   transition: background 0.2s;
 }
+
 .zoom-icon-btn:hover {
   background: #c8ad7f;
   color: #222;
 }
+
 .zoom-icon-btn .el-icon {
   font-size: 20px;
 }
+
 .zoom-img-container {
   width: 100%;
   height: 100%;
@@ -1471,8 +1384,13 @@ onUnmounted(() => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-progress {
@@ -1490,4 +1408,4 @@ onUnmounted(() => {
   font-size: 16px;
   font-weight: 500;
 }
-</style> 
+</style>
