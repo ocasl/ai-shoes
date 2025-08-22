@@ -113,6 +113,25 @@
                                         :disabled="!currentMask">
                                         {{ showWhiteAreaDebug ? '隐藏' : '显示' }}白色区域
                                     </el-button>
+                                    <el-dropdown @command="handleSaveCommand" trigger="click">
+                                        <el-button size="small" type="success" :disabled="!mainImage">
+                                            <el-icon>
+                                                <Download />
+                                            </el-icon>
+                                            保存设计
+                                            <el-icon class="el-icon--right">
+                                                <ArrowDown />
+                                            </el-icon>
+                                        </el-button>
+                                        <template #dropdown>
+                                            <el-dropdown-menu>
+                                                <el-dropdown-item command="save-design">保存完整设计</el-dropdown-item>
+                                                <el-dropdown-item command="save-batch">批量保存（设计+原图）</el-dropdown-item>
+                                                <el-dropdown-item command="save-high-res"
+                                                    divided>保存高分辨率版本</el-dropdown-item>
+                                            </el-dropdown-menu>
+                                        </template>
+                                    </el-dropdown>
                                 </div>
                             </div>
 
@@ -231,6 +250,16 @@
                                     @change="updateMaterialEffect" size="small"></el-slider>
                             </div>
                             <div class="control-group">
+                                <label>材质透明度: {{ materialOpacity }}%</label>
+                                <el-slider v-model="materialOpacity" :min="0" :max="100" @change="updateMaterialEffect"
+                                    size="small"></el-slider>
+                            </div>
+                            <div class="control-group">
+                                <label>边缘羽化: {{ featherRadius }}px</label>
+                                <el-slider v-model="featherRadius" :min="0" :max="20" @change="updateMaterialEffect"
+                                    size="small"></el-slider>
+                            </div>
+                            <div class="control-group">
                                 <label>保持光影:</label>
                                 <el-switch v-model="preserveShading" @change="updateMaterialEffect"
                                     size="small"></el-switch>
@@ -269,10 +298,26 @@
                             <div class="materials-grid">
                                 <div v-for="material in systemMaterials" :key="material.id" class="material-card"
                                     @click="selectMaterial(material)">
-                                    <img :src="material.realUrl || formatMaterialImageUrlSync(material.ossPath)"
-                                        :alt="material.name" class="material-image" @error="handleImageError"
-                                        loading="lazy" />
+                                    <img :src="getMaterialImageUrl(material)" :alt="material.name"
+                                        class="material-image" @error="handleSimpleImageError" loading="lazy" />
                                     <div class="material-name">{{ material.name }}</div>
+                                    <!-- 调试信息 -->
+                                    <div class="material-debug"
+                                        style="font-size: 10px; color: #ccc; background: rgba(0,0,0,0.7); padding: 2px;">
+                                        <div>ID: {{ material.id }}</div>
+                                        <div>OSS: {{ material.ossPath || '无' }}</div>
+                                        <div>Real: {{ material.realUrl || '无' }}</div>
+                                        <div>Final URL: {{ getMaterialImageUrl(material) }}</div>
+                                    </div>
+                                    <!-- 添加删除按钮（系统材质一般不能删除） -->
+                                    <div class="material-actions">
+                                        <el-button size="small" type="warning"
+                                            @click.stop="editSystemMaterial(material.id)" title="编辑系统材质">
+                                            <el-icon>
+                                                <Edit />
+                                            </el-icon>
+                                        </el-button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -291,10 +336,17 @@
                             <div class="materials-grid">
                                 <div v-for="material in userMaterials" :key="material.id" class="material-card"
                                     @click="selectMaterial(material)">
-                                    <img :src="material.realUrl || formatMaterialImageUrlSync(material.ossPath)"
-                                        :alt="material.name" class="material-image" @error="handleImageError"
-                                        loading="lazy" />
+                                    <img :src="getMaterialImageUrl(material)" :alt="material.name"
+                                        class="material-image" @error="handleSimpleImageError" loading="lazy" />
                                     <div class="material-name">{{ material.name }}</div>
+                                    <!-- 调试信息 -->
+                                    <div class="material-debug"
+                                        style="font-size: 10px; color: #ccc; background: rgba(0,0,0,0.7); padding: 2px;">
+                                        <div>ID: {{ material.id }}</div>
+                                        <div>OSS: {{ material.ossPath || '无' }}</div>
+                                        <div>Real: {{ material.realUrl || '无' }}</div>
+                                        <div>Final URL: {{ getMaterialImageUrl(material) }}</div>
+                                    </div>
                                     <div class="material-actions">
                                         <el-button size="small" type="danger" @click.stop="deleteMaterial(material.id)">
                                             <el-icon>
@@ -357,7 +409,7 @@ import { ref, reactive, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-    Plus, Upload, Edit, Picture, Delete, Search, View, Hide
+    Plus, Upload, Edit, Picture, Delete, Search, View, Hide, Download, ArrowDown
 } from '@element-plus/icons-vue'
 import { useShoeStore } from '../../store'
 import {
@@ -429,6 +481,8 @@ const systemSearchKeyword = ref('')
 // 材质效果控制
 const materialBlendMode = ref('multiply')
 const materialIntensity = ref(80)
+const materialOpacity = ref(100)  // 材质透明度
+const featherRadius = ref(2)      // 羽化半径
 const preserveShading = ref(true)
 
 // 白色区域调试
@@ -1388,8 +1442,7 @@ const updateLayerPreview = (layer: Layer) => {
             // 更新图层预览
             layer.previewImage = canvas.toDataURL()
         }
-        const ossPath = layer.material?.ossPath || ''
-        materialImg.src = layer.material?.realUrl || formatMaterialImageUrlSync(ossPath)
+        materialImg.src = getMaterialImageUrl(layer.material)
     }
     maskImg.src = layer.maskData
 }
@@ -1443,7 +1496,7 @@ const redrawCanvasWithLayers = async () => {
                                         }
 
                                         // 获取材质图片URL
-                                        const materialUrl = layer.material?.realUrl || formatMaterialImageUrlSync(layer.material?.ossPath || '')
+                                        const materialUrl = getMaterialImageUrl(layer.material)
                                         materialImg.src = materialUrl
                                     })
 
@@ -1735,18 +1788,21 @@ const renderMaterialInMaskRegion = (ctx: CanvasRenderingContext2D, maskImg: HTML
     }
     tempCtx.restore()
 
-    // 🎯 步骤2：关键 - 使用精确蒙版，只保留白色区域的材质
-    tempCtx.globalCompositeOperation = 'destination-in'
-    tempCtx.drawImage(preciseMaskCanvas, 0, 0)
+    // 🎯 步骤2：应用羽化效果到蒙版
+    const featheredMaskCanvas = applyFeatherToMask(preciseMaskCanvas, featherRadius.value)
 
-    // 🎨 步骤3：根据混合模式优化渲染效果
-    let finalAlpha = materialIntensity.value / 100
+    // 步骤3：关键 - 使用羽化后的精确蒙版，只保留白色区域的材质
+    tempCtx.globalCompositeOperation = 'destination-in'
+    tempCtx.drawImage(featheredMaskCanvas, 0, 0)
+
+    // 🎨 步骤4：根据混合模式优化渲染效果
+    let finalAlpha = (materialIntensity.value / 100) * (materialOpacity.value / 100)  // 结合强度和透明度
     let finalBlendMode = materialBlendMode.value as GlobalCompositeOperation
 
     // 💡 正片叠底模式特殊优化
     if (materialBlendMode.value === 'multiply') {
         // 正片叠底模式下，适当提高材质强度以获得更好的视觉效果
-        finalAlpha = Math.min(1.0, (materialIntensity.value / 100) * 1.2)
+        finalAlpha = Math.min(1.0, (materialIntensity.value / 100) * 1.2 * (materialOpacity.value / 100))
 
         // 如果启用了保持光影，需要特殊处理
         if (preserveShading.value) {
@@ -1757,17 +1813,19 @@ const renderMaterialInMaskRegion = (ctx: CanvasRenderingContext2D, maskImg: HTML
         // 💡 增强正片叠底模式 - 专为材质替换优化
         finalBlendMode = 'multiply' // 使用原生multiply作为基础
 
-        // 增强版参数调整
+        // 增强版参数调整，包含透明度
+        const baseAlpha = (materialIntensity.value / 100) * (materialOpacity.value / 100)
         if (preserveShading.value) {
             // 保持光影时，使用多层混合技术
-            finalAlpha = Math.min(1.0, (materialIntensity.value / 100) * 1.5)
+            finalAlpha = Math.min(1.0, baseAlpha * 1.5)
         } else {
             // 不保持光影时，更强烈的材质效果
-            finalAlpha = Math.min(1.0, (materialIntensity.value / 100) * 1.8)
+            finalAlpha = Math.min(1.0, baseAlpha * 1.8)
         }
 
         console.log('🚀 使用增强正片叠底模式，强度提升:', {
             原始强度: materialIntensity.value,
+            透明度: materialOpacity.value,
             最终强度: Math.round(finalAlpha * 100),
             保持光影: preserveShading.value
         })
@@ -1790,10 +1848,78 @@ const renderMaterialInMaskRegion = (ctx: CanvasRenderingContext2D, maskImg: HTML
         图层: layer.id,
         材质: layer.material?.name,
         混合模式: materialBlendMode.value,
-        强度: `${materialIntensity.value}% -> ${Math.round(finalAlpha * 100)}%`,
+        强度: `${materialIntensity.value}%`,
+        透明度: `${materialOpacity.value}%`,
+        羽化: `${featherRadius.value}px`,
+        最终透明度: `${Math.round(finalAlpha * 100)}%`,
         白色像素检测: '完成',
         保持光影: preserveShading.value
     })
+}
+
+// 羽化蒙版函数 - 让材质边缘更自然
+const applyFeatherToMask = (maskCanvas: HTMLCanvasElement, featherRadius: number): HTMLCanvasElement => {
+    if (featherRadius <= 0) {
+        return maskCanvas  // 无需羽化，直接返回原蒙版
+    }
+
+    const featheredCanvas = document.createElement('canvas')
+    const featheredCtx = featheredCanvas.getContext('2d')!
+    featheredCanvas.width = maskCanvas.width
+    featheredCanvas.height = maskCanvas.height
+
+    // 获取原始蒙版数据
+    featheredCtx.drawImage(maskCanvas, 0, 0)
+    const originalData = featheredCtx.getImageData(0, 0, featheredCanvas.width, featheredCanvas.height)
+    const featheredData = featheredCtx.createImageData(featheredCanvas.width, featheredCanvas.height)
+
+    const width = featheredCanvas.width
+    const height = featheredCanvas.height
+
+    // 🌟 高斯模糊羽化算法
+    console.log('🪶 开始应用羽化效果，半径:', featherRadius)
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            let totalWeight = 0
+            let weightedSum = 0
+
+            // 在羽化半径内计算加权平均值
+            for (let dy = -featherRadius; dy <= featherRadius; dy++) {
+                for (let dx = -featherRadius; dx <= featherRadius; dx++) {
+                    const nx = x + dx
+                    const ny = y + dy
+
+                    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                        const distance = Math.sqrt(dx * dx + dy * dy)
+
+                        if (distance <= featherRadius) {
+                            // 高斯权重计算
+                            const weight = Math.exp(-(distance * distance) / (2 * featherRadius * featherRadius))
+                            const idx = (ny * width + nx) * 4
+
+                            weightedSum += originalData.data[idx] * weight  // 使用R通道
+                            totalWeight += weight
+                        }
+                    }
+                }
+            }
+
+            const featheredValue = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0
+            const idx = (y * width + x) * 4
+
+            featheredData.data[idx] = featheredValue     // R
+            featheredData.data[idx + 1] = featheredValue // G
+            featheredData.data[idx + 2] = featheredValue // B
+            featheredData.data[idx + 3] = featheredValue // A
+        }
+    }
+
+    // 应用羽化后的数据
+    featheredCtx.putImageData(featheredData, 0, 0)
+
+    console.log('✨ 羽化效果应用完成，边缘已软化')
+    return featheredCanvas
 }
 
 // 增强正片叠底渲染函数 - 多层混合技术
@@ -2054,15 +2180,228 @@ const drawWhiteAreaDebugInfo = async () => {
     maskImg.src = currentMask.value
 }
 
-// 图片加载错误处理
-const handleImageError = (event: Event) => {
+// 保存设计图片功能
+const saveDesignImage = () => {
+    if (!imageCanvas.value || !mainImage.value) {
+        ElMessage.warning('没有可保存的设计内容')
+        return
+    }
+
+    try {
+        // 创建一个新的canvas来生成最终图片
+        const finalCanvas = document.createElement('canvas')
+        const finalCtx = finalCanvas.getContext('2d')!
+
+        // 设置最终canvas尺寸为1024x1024
+        finalCanvas.width = 1024
+        finalCanvas.height = 1024
+
+        console.log('🖼️ 开始生成最终设计图片...')
+
+        // 绘制当前canvas的内容（包含所有材质效果）
+        finalCtx.drawImage(imageCanvas.value, 0, 0)
+
+        // 转换为blob并下载
+        finalCanvas.toBlob((blob) => {
+            if (blob) {
+                const url = URL.createObjectURL(blob)
+                const link = document.createElement('a')
+                link.href = url
+
+                // 生成文件名（包含时间戳）
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
+                link.download = `ai-shoes-design-${timestamp}.png`
+
+                // 触发下载
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
+
+                // 清理临时URL
+                URL.revokeObjectURL(url)
+
+                ElMessage.success('设计图片保存成功！')
+
+                console.log('✅ 设计图片已保存:', {
+                    文件名: link.download,
+                    尺寸: `${finalCanvas.width}x${finalCanvas.height}`,
+                    格式: 'PNG',
+                    包含图层数: layers.value.length
+                })
+            } else {
+                throw new Error('无法生成图片文件')
+            }
+        }, 'image/png', 1.0)  // 最高质量PNG
+
+    } catch (error: any) {
+        console.error('保存图片失败:', error)
+        ElMessage.error(`保存失败: ${error.message || '未知错误'}`)
+    }
+}
+
+// 批量保存功能（可选 - 分别保存原图和各图层）
+const saveBatchImages = () => {
+    if (!imageCanvas.value || !mainImage.value) {
+        ElMessage.warning('没有可保存的内容')
+        return
+    }
+
+    try {
+        console.log('📦 开始批量保存...')
+
+        // 1. 保存完整设计
+        saveDesignImage()
+
+        // 2. 保存原图
+        const originalCanvas = document.createElement('canvas')
+        const originalCtx = originalCanvas.getContext('2d')!
+        originalCanvas.width = 1024
+        originalCanvas.height = 1024
+
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => {
+            originalCtx.drawImage(img, 0, 0, 1024, 1024)
+
+            originalCanvas.toBlob((blob) => {
+                if (blob) {
+                    const url = URL.createObjectURL(blob)
+                    const link = document.createElement('a')
+                    link.href = url
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
+                    link.download = `ai-shoes-original-${timestamp}.png`
+                    document.body.appendChild(link)
+                    link.click()
+                    document.body.removeChild(link)
+                    URL.revokeObjectURL(url)
+                }
+            }, 'image/png', 1.0)
+        }
+        img.src = mainImage.value
+
+        ElMessage.success('批量保存完成！')
+
+    } catch (error: any) {
+        console.error('批量保存失败:', error)
+        ElMessage.error(`批量保存失败: ${error.message || '未知错误'}`)
+    }
+}
+
+// 保存命令处理
+const handleSaveCommand = (command: string) => {
+    switch (command) {
+        case 'save-design':
+            saveDesignImage()
+            break
+        case 'save-batch':
+            saveBatchImages()
+            break
+        case 'save-high-res':
+            saveHighResolutionImage()
+            break
+        default:
+            console.warn('未知的保存命令:', command)
+    }
+}
+
+// 保存高分辨率版本（2048x2048）
+const saveHighResolutionImage = () => {
+    if (!imageCanvas.value || !mainImage.value) {
+        ElMessage.warning('没有可保存的设计内容')
+        return
+    }
+
+    try {
+        console.log('🖼️ 开始生成高分辨率设计图片...')
+
+        // 创建高分辨率canvas (2048x2048)
+        const highResCanvas = document.createElement('canvas')
+        const highResCtx = highResCanvas.getContext('2d')!
+        highResCanvas.width = 2048
+        highResCanvas.height = 2048
+
+        // 禁用图像平滑以保持清晰度
+        highResCtx.imageSmoothingEnabled = false
+
+        // 将当前canvas内容放大到高分辨率
+        highResCtx.drawImage(imageCanvas.value, 0, 0, 1024, 1024, 0, 0, 2048, 2048)
+
+        // 转换为blob并下载
+        highResCanvas.toBlob((blob) => {
+            if (blob) {
+                const url = URL.createObjectURL(blob)
+                const link = document.createElement('a')
+                link.href = url
+
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
+                link.download = `ai-shoes-design-highres-${timestamp}.png`
+
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
+
+                URL.revokeObjectURL(url)
+
+                ElMessage.success('高分辨率设计图片保存成功！')
+
+                console.log('✅ 高分辨率设计图片已保存:', {
+                    文件名: link.download,
+                    尺寸: `${highResCanvas.width}x${highResCanvas.height}`,
+                    格式: 'PNG',
+                    分辨率: '高分辨率(2x)'
+                })
+            } else {
+                throw new Error('无法生成高分辨率图片文件')
+            }
+        }, 'image/png', 1.0)
+
+    } catch (error: any) {
+        console.error('保存高分辨率图片失败:', error)
+        ElMessage.error(`保存失败: ${error.message || '未知错误'}`)
+    }
+}
+
+// 获取材质图片的正确URL
+const getMaterialImageUrl = (material: any): string => {
+    // 如果realUrl是对象（API返回的对象格式）
+    if (material.realUrl && typeof material.realUrl === 'object') {
+        if (material.realUrl.downloadUrl) {
+            return material.realUrl.downloadUrl
+        }
+    }
+
+    // 如果realUrl是字符串
+    if (material.realUrl && typeof material.realUrl === 'string') {
+        return material.realUrl
+    }
+
+    // 回退到ossPath
+    if (material.ossPath) {
+        return formatMaterialImageUrlSync(material.ossPath)
+    }
+
+    return ''
+}
+
+// 简单的图片加载错误处理 - 避免无限循环
+const handleSimpleImageError = (event: Event) => {
     const img = event.target as HTMLImageElement
-    console.error('❌ 材质图片加载失败:', {
-        原始URL: img.src,
-        错误类型: event.type
-    })
-    // 设置更清晰的占位图，包含中文错误提示
-    img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjVmNWY1IiBzdHJva2U9IiNkZGQiIHN0cm9rZS13aWR0aD0iMiIvPjxjaXJjbGUgY3g9IjEwMCIgY3k9IjgwIiByPSIyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjY2NjIiBzdHJva2Utd2lkdGg9IjMiLz48cGF0aCBkPSJNOTAgNzBMMTEwIDkwTTExMCA3MEw5MCA5MCIgc3Ryb2tlPSIjY2NjIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjx0ZXh0IHg9IjUwJSIgeT0iMTQwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuWbvueJh+WKoOi9veWksei0pTwvdGV4dD48dGV4dCB4PSI1MCUiIHk9IjE2MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEwIiBmaWxsPSIjYmJiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7or7fmo4Dmn6Xmjqflirblj7Dvvb08L3RleHQ+PC9zdmc+'
+
+    // 防止重复触发错误处理
+    if (img.dataset.errorHandled === 'true') {
+        return
+    }
+    img.dataset.errorHandled = 'true'
+
+    console.warn('⚠️ 材质图片加载失败:', img.src)
+
+    // 设置简单的灰色占位图
+    img.style.background = '#f5f5f5'
+    img.style.border = '1px dashed #ccc'
+    img.alt = '图片加载失败'
+
+    // 移除src避免继续重试
+    img.removeAttribute('src')
 }
 
 // 材质相关
@@ -2075,6 +2414,12 @@ const loadSystemMaterials = async (keyword?: string) => {
             systemMaterials.value = response.data.records || []
             console.log('✅ 系统材质加载成功，数量:', systemMaterials.value.length)
 
+            // 详细记录系统材质数据结构
+            if (systemMaterials.value.length > 0) {
+                console.log('📝 系统材质数据示例:', systemMaterials.value[0])
+                console.log('🔍 所有系统材质数据:', systemMaterials.value)
+            }
+
             // 如果没有材质，显示提示
             if (systemMaterials.value.length === 0) {
                 console.log('⚠️ 系统材质库为空')
@@ -2084,29 +2429,30 @@ const loadSystemMaterials = async (keyword?: string) => {
 
             // 异步加载每个材质的真实URL
             for (const material of systemMaterials.value) {
+                console.log(`🔧 处理系统材质 ${material.name}:`, {
+                    id: material.id,
+                    ossPath: material.ossPath,
+                    realUrl: material.realUrl,
+                    原始数据: material
+                })
+
                 try {
-                    console.log('🖼️ 正在加载系统材质URL:', {
-                        id: material.id,
-                        name: material.name,
-                        ossPath: material.ossPath
-                    })
-
-                    const realUrl = await formatMaterialImageUrl(material)
-                    material.realUrl = realUrl
-
-                    console.log('✅ 系统材质URL获取成功:', {
-                        id: material.id,
-                        name: material.name,
-                        realUrl: realUrl
-                    })
+                    // 如果没有realUrl，尝试获取
+                    if (!material.realUrl && material.ossPath) {
+                        console.log(`🌐 获取URL for ${material.name}...`)
+                        const realUrl = await formatMaterialImageUrl(material)
+                        material.realUrl = realUrl
+                        console.log(`✅ URL获取成功 ${material.name}:`, realUrl)
+                    } else if (!material.ossPath) {
+                        console.warn(`⚠️ 材质 ${material.name} 没有ossPath`)
+                    }
                 } catch (error) {
-                    console.error('❌ 系统材质URL获取失败:', {
-                        material: material.name,
-                        id: material.id,
-                        error: error
-                    })
+                    console.warn('材质URL获取失败:', material.name, error)
                     // 即使URL获取失败，也设置一个备用URL
-                    material.realUrl = formatMaterialImageUrlSync(material.ossPath || '')
+                    if (material.ossPath) {
+                        material.realUrl = formatMaterialImageUrlSync(material.ossPath)
+                        console.log(`🔄 使用备用URL ${material.name}:`, material.realUrl)
+                    }
                 }
             }
         } else {
@@ -2125,8 +2471,28 @@ const loadUserMaterials = async () => {
         console.log('用户材质响应:', response)
 
         if (response.code === 200 || response.code === 0) {
-            userMaterials.value = response.data.records
-            console.log('加载用户材质成功，数量:', response.data.records.length)
+            userMaterials.value = response.data.records || []
+            console.log('✅ 用户材质加载成功，数量:', userMaterials.value.length)
+
+            // 对比用户材质的数据结构
+            if (userMaterials.value.length > 0) {
+                console.log('📝 用户材质数据示例:', userMaterials.value[0])
+            }
+
+            // 异步加载用户材质的真实URL
+            for (const material of userMaterials.value) {
+                try {
+                    if (!material.realUrl && material.ossPath) {
+                        const realUrl = await formatMaterialImageUrl(material)
+                        material.realUrl = realUrl
+                    }
+                } catch (error) {
+                    console.warn('用户材质URL获取失败:', material.name, error)
+                    if (material.ossPath) {
+                        material.realUrl = formatMaterialImageUrlSync(material.ossPath)
+                    }
+                }
+            }
         } else {
             console.warn('用户材质加载失败:', response.msg)
         }
@@ -2233,6 +2599,12 @@ const confirmUploadMaterial = async () => {
     }
 }
 
+// 编辑系统材质（仅展示功能）
+const editSystemMaterial = (materialId: number) => {
+    ElMessage.info('系统材质编辑功能需要管理员权限')
+    console.log('尝试编辑系统材质ID:', materialId)
+}
+
 const deleteMaterial = async (materialId: number) => {
     try {
         await ElMessageBox.confirm('确认删除这个材质吗？', '确认删除', {
@@ -2282,9 +2654,11 @@ onMounted(() => {
 
 
 .main-content {
-    margin-left: 0;
+    margin-left: 120px;
+    /* 向右移动120px，避免遮挡导航按钮 */
     padding: 20px;
-    width: 100%;
+    width: calc(100% - 120px);
+    /* 调整宽度适应左边距 */
 }
 
 .replacement-container {
@@ -2838,6 +3212,7 @@ onMounted(() => {
     object-fit: cover;
     border-radius: 6px;
     margin-bottom: 8px;
+    transition: opacity 0.3s ease;
 }
 
 .material-name {
