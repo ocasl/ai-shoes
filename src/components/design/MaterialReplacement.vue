@@ -216,6 +216,14 @@
                                                 <component :is="layer.isVisible !== false ? 'View' : 'Hide'" />
                                             </el-icon>
                                         </el-button>
+                                        <!-- 换颜色按钮 - 只有应用了材质的图层才显示 -->
+                                        <el-button v-if="layer.material" size="small" type="text" 
+                                            @click.stop="openColorChangeDialog(layer)" class="color-change-btn"
+                                            title="更换颜色">
+                                            <el-icon>
+                                                <Brush />
+                                            </el-icon>
+                                        </el-button>
                                         <el-button size="small" type="text" @click.stop="deleteLayer(layer.id)"
                                             class="delete-btn">
                                             <el-icon>
@@ -301,14 +309,6 @@
                                     <img :src="getMaterialImageUrl(material)" :alt="material.name"
                                         class="material-image" @error="handleSimpleImageError" loading="lazy" />
                                     <div class="material-name">{{ material.name }}</div>
-                                    <!-- 调试信息 -->
-                                    <div class="material-debug"
-                                        style="font-size: 10px; color: #ccc; background: rgba(0,0,0,0.7); padding: 2px;">
-                                        <div>ID: {{ material.id }}</div>
-                                        <div>OSS: {{ material.ossPath || '无' }}</div>
-                                        <div>Real: {{ material.realUrl || '无' }}</div>
-                                        <div>Final URL: {{ getMaterialImageUrl(material) }}</div>
-                                    </div>
                                     <!-- 添加删除按钮（系统材质一般不能删除） -->
                                     <div class="material-actions">
                                         <el-button size="small" type="warning"
@@ -339,14 +339,6 @@
                                     <img :src="getMaterialImageUrl(material)" :alt="material.name"
                                         class="material-image" @error="handleSimpleImageError" loading="lazy" />
                                     <div class="material-name">{{ material.name }}</div>
-                                    <!-- 调试信息 -->
-                                    <div class="material-debug"
-                                        style="font-size: 10px; color: #ccc; background: rgba(0,0,0,0.7); padding: 2px;">
-                                        <div>ID: {{ material.id }}</div>
-                                        <div>OSS: {{ material.ossPath || '无' }}</div>
-                                        <div>Real: {{ material.realUrl || '无' }}</div>
-                                        <div>Final URL: {{ getMaterialImageUrl(material) }}</div>
-                                    </div>
                                     <div class="material-actions">
                                         <el-button size="small" type="danger" @click.stop="deleteMaterial(material.id)">
                                             <el-icon>
@@ -401,6 +393,96 @@
                 </el-button>
             </template>
         </el-dialog>
+
+        <!-- 颜色选择对话框 -->
+        <el-dialog v-model="showColorChangeDialog" title="更换颜色" width="800px" :close-on-click-modal="false">
+            <div class="color-change-content">
+                <div class="color-picker-section">
+                    <h4>选择新颜色</h4>
+                    <div class="color-input-group">
+                        <el-input v-model="selectedColor" placeholder="请输入色号 (如: #FF0000)" 
+                            @input="onColorInputChange" style="width: 200px;">
+                            <template #prepend>色号</template>
+                        </el-input>
+                        <div class="color-preview" :style="{ backgroundColor: selectedColor }"></div>
+                    </div>
+                    
+                    <!-- 预设颜色板 -->
+                    <div class="preset-colors">
+                        <div class="color-row">
+                            <div v-for="color in presetColors" :key="color" 
+                                class="color-item" 
+                                :class="{ active: selectedColor === color }"
+                                :style="{ backgroundColor: color }"
+                                @click="selectPresetColor(color)"
+                                :title="color">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 最近使用的颜色 -->
+                    <div v-if="recentColors.length > 0" class="recent-colors">
+                        <h5>最近使用</h5>
+                        <div class="color-row">
+                            <div v-for="color in recentColors" :key="color" 
+                                class="color-item" 
+                                :class="{ active: selectedColor === color }"
+                                :style="{ backgroundColor: color }"
+                                @click="selectPresetColor(color)"
+                                :title="color">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 处理状态显示 -->
+                <div v-if="colorChangeStatus" class="processing-status">
+                    <el-progress :percentage="colorChangeProgress" :status="colorChangeStatus === 'error' ? 'exception' : undefined">
+                        <template #default="{ percentage }">
+                            <span class="progress-text">{{ colorChangeStatusText }} {{ percentage }}%</span>
+                        </template>
+                    </el-progress>
+                </div>
+            </div>
+            
+            <template #footer>
+                <el-button @click="closeColorChangeDialog" :disabled="colorChangeStatus === 'processing'">取消</el-button>
+                <el-button type="primary" @click="startColorChange" 
+                    :loading="colorChangeStatus === 'processing'" 
+                    :disabled="!selectedColor || !isValidColor(selectedColor)">
+                    开始换颜色
+                </el-button>
+            </template>
+        </el-dialog>
+
+        <!-- 颜色结果选择对话框 -->
+        <el-dialog v-model="showColorResultDialog" title="选择换颜色结果" width="900px" :close-on-click-modal="false">
+            <div class="color-result-content">
+                <p class="result-tip">请选择一个您满意的换颜色结果：</p>
+                <div class="result-images">
+                    <div v-for="(url, index) in colorChangeResults" :key="index" 
+                        class="result-item" 
+                        :class="{ selected: selectedResultIndex === index }"
+                        @click="selectResult(index)">
+                        <img :src="url" :alt="`结果 ${index + 1}`" />
+                        <div class="result-overlay">
+                            <span class="result-label">结果 {{ index + 1 }}</span>
+                            <el-icon v-if="selectedResultIndex === index" class="selected-icon">
+                                <Check />
+                            </el-icon>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <template #footer>
+                <el-button @click="closeColorResultDialog">取消</el-button>
+                <el-button type="primary" @click="confirmColorResult" 
+                    :disabled="selectedResultIndex === -1">
+                    确认选择
+                </el-button>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
@@ -409,7 +491,7 @@ import { ref, reactive, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-    Plus, Upload, Edit, Picture, Delete, Search, View, Hide, Download, ArrowDown
+    Plus, Upload, Edit, Picture, Delete, Search, View, Hide, Download, ArrowDown, Brush, Check
 } from '@element-plus/icons-vue'
 import { useShoeStore } from '../../store'
 import {
@@ -487,6 +569,31 @@ const preserveShading = ref(true)
 
 // 白色区域调试
 const showWhiteAreaDebug = ref(false)
+
+// 颜色更换相关
+const showColorChangeDialog = ref(false)
+const showColorResultDialog = ref(false)
+const currentColorChangeLayer = ref<Layer | null>(null)
+const selectedColor = ref('#FF0000')
+const colorChangeStatus = ref<'idle' | 'processing' | 'success' | 'error'>('idle')
+const colorChangeProgress = ref(0)
+const colorChangeStatusText = ref('')
+const colorChangeResults = ref<string[]>([])
+const selectedResultIndex = ref(-1)
+
+// 预设颜色
+const presetColors = ref([
+    '#FF0000', '#FF4500', '#FFA500', '#FFD700', '#FFFF00', '#ADFF2F', '#00FF00', '#00FF7F',
+    '#00FFFF', '#0080FF', '#0000FF', '#4169E1', '#8A2BE2', '#FF00FF', '#FF1493', '#FF69B4',
+    '#000000', '#404040', '#808080', '#C0C0C0', '#FFFFFF', '#8B4513', '#D2691E', '#CD853F',
+    '#F4A460', '#DEB887', '#D2B48C', '#BC8F8F', '#F0E68C', '#E6E6FA', '#FFE4E1', '#FFF8DC'
+])
+
+// 最近使用的颜色
+const recentColors = ref<string[]>([])
+
+// WebSocket连接
+let colorChangeWs: WebSocket | null = null
 
 // 上传材质弹窗
 const showUploadDialog = ref(false)
@@ -1413,9 +1520,11 @@ const saveCurrentLayer = () => {
     ElMessage.success('图层保存成功！可以继续分割其他部位')
 }
 
-// 更新图层预览
+// 更新图层预览 - 修复版本，正确显示蒙版区域的材质
 const updateLayerPreview = (layer: Layer) => {
     if (!layer.maskData || !layer.material) return
+
+    console.log('🔄 更新图层预览:', layer.id)
 
     // 创建一个新的canvas来合成预览
     const canvas = document.createElement('canvas')
@@ -1428,22 +1537,73 @@ const updateLayerPreview = (layer: Layer) => {
     // 加载蒙版
     const maskImg = new Image()
     maskImg.onload = () => {
+        console.log('✅ 蒙版图片加载完成')
+
         // 创建材质图案
         const materialImg = new Image()
         materialImg.crossOrigin = 'anonymous'
         materialImg.onload = () => {
-            // 绘制材质图案
-            ctx.drawImage(materialImg, 0, 0, canvas.width, canvas.height)
+            console.log('✅ 材质图片加载完成')
 
-            // 应用蒙版 - 只显示蒙版区域
+            // 🎯 关键修复：先创建精确的白色区域蒙版
+            const maskCanvas = document.createElement('canvas')
+            const maskCtx = maskCanvas.getContext('2d')!
+            maskCanvas.width = canvas.width
+            maskCanvas.height = canvas.height
+            maskCtx.drawImage(maskImg, 0, 0, canvas.width, canvas.height)
+            const maskImageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height)
+
+            // 创建精确的白色区域蒙版
+            const whiteMaskData = maskCtx.createImageData(maskCanvas.width, maskCanvas.height)
+            for (let i = 0; i < maskImageData.data.length; i += 4) {
+                const r = maskImageData.data[i]
+                const g = maskImageData.data[i + 1]
+                const b = maskImageData.data[i + 2]
+
+                // 精确检测白色区域（RGB值均大于200认为是白色）
+                const isWhite = r > 200 && g > 200 && b > 200
+
+                whiteMaskData.data[i] = isWhite ? 255 : 0      // R
+                whiteMaskData.data[i + 1] = isWhite ? 255 : 0  // G
+                whiteMaskData.data[i + 2] = isWhite ? 255 : 0  // B
+                whiteMaskData.data[i + 3] = isWhite ? 255 : 0  // A
+            }
+
+            // 应用精确的白色蒙版
+            const preciseMaskCanvas = document.createElement('canvas')
+            const preciseMaskCtx = preciseMaskCanvas.getContext('2d')!
+            preciseMaskCanvas.width = maskCanvas.width
+            preciseMaskCanvas.height = maskCanvas.height
+            preciseMaskCtx.putImageData(whiteMaskData, 0, 0)
+
+            // 🎨 步骤1：绘制材质纹理（平铺）
+            const pattern = ctx.createPattern(materialImg, 'repeat')
+            if (pattern) {
+                ctx.fillStyle = pattern
+                ctx.fillRect(0, 0, canvas.width, canvas.height)
+            }
+
+            // 🎯 步骤2：关键 - 只保留精确白色区域的材质
             ctx.globalCompositeOperation = 'destination-in'
-            ctx.drawImage(maskImg, 0, 0, canvas.width, canvas.height)
+            ctx.drawImage(preciseMaskCanvas, 0, 0)
+
+            console.log('✅ 图层预览已更新，材质仅限制在白色区域')
 
             // 更新图层预览
             layer.previewImage = canvas.toDataURL()
         }
+
+        materialImg.onerror = () => {
+            console.error('❌ 材质图片加载失败:', layer.material?.name)
+        }
+
         materialImg.src = getMaterialImageUrl(layer.material)
     }
+
+    maskImg.onerror = () => {
+        console.error('❌ 蒙版图片加载失败')
+    }
+
     maskImg.src = layer.maskData
 }
 
@@ -1528,17 +1688,131 @@ const redrawCanvasWithLayers = async () => {
                     // 绘制调试信息
                     drawDebugInfo()
 
+                    // 如果有选中的图层，绘制高亮效果
+                    if (selectedLayerId.value) {
+                        drawSelectedLayerHighlight(ctx)
+                    }
+
                     resolve()
                 }
                 currentMaskImg.src = currentMask.value
             } else {
                 // 绘制调试信息
                 drawDebugInfo()
+
+                // 如果有选中的图层，绘制高亮效果
+                if (selectedLayerId.value) {
+                    drawSelectedLayerHighlight(ctx)
+                }
+
                 resolve()
             }
         }
         img.src = mainImage.value
     })
+}
+
+// 绘制选中图层的高亮效果（仅在没有材质时显示）
+const drawSelectedLayerHighlight = (ctx: CanvasRenderingContext2D) => {
+    const selectedLayer = layers.value.find(layer => layer.id === selectedLayerId.value)
+    if (!selectedLayer || !selectedLayer.maskData) return
+
+    console.log('🔍 图层高亮检查:', {
+        图层ID: selectedLayer.id,
+        有材质: !!selectedLayer.material,
+        材质名称: selectedLayer.material?.name || '无',
+        蒙版数据: !!selectedLayer.maskData
+    })
+
+    // 🎯 关键修改：如果图层已经有材质，完全不显示任何高亮效果
+    if (selectedLayer.material) {
+        console.log('✅ 图层有材质，不显示高亮')
+        // 有材质时，不显示任何高亮，只显示材质本身的效果
+        return
+    }
+
+    console.log('🔵 图层无材质，显示蓝色高亮')
+
+    const highlightImg = new Image()
+    highlightImg.onload = () => {
+        // 创建高亮蒙版
+        const highlightCanvas = document.createElement('canvas')
+        const highlightCtx = highlightCanvas.getContext('2d')!
+        highlightCanvas.width = 1024
+        highlightCanvas.height = 1024
+
+        // 绘制蒙版到临时画布
+        highlightCtx.drawImage(highlightImg, 0, 0, 1024, 1024)
+        const imageData = highlightCtx.getImageData(0, 0, 1024, 1024)
+        const data = imageData.data
+
+        // 创建高亮效果：白色区域变为明显的蓝色边框
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i]
+            const g = data[i + 1]
+            const b = data[i + 2]
+
+            // 检测白色区域
+            if (r > 200 && g > 200 && b > 200) {
+                // 检查是否是边缘像素
+                const x = (i / 4) % 1024
+                const y = Math.floor(i / 4 / 1024)
+
+                if (isEdgePixel(data, x, y, 1024, 1024)) {
+                    // 边缘设置为明亮的蓝色边框
+                    data[i] = 0      // R - 蓝色
+                    data[i + 1] = 150 // G - 蓝色  
+                    data[i + 2] = 255 // B - 蓝色
+                    data[i + 3] = 200 // A - 较高透明度
+                } else {
+                    // 内部区域设为淡蓝色半透明
+                    data[i] = 150    // R
+                    data[i + 1] = 200 // G
+                    data[i + 2] = 255 // B
+                    data[i + 3] = 30  // A - 很低的透明度
+                }
+            } else {
+                // 非白色区域设为透明
+                data[i + 3] = 0
+            }
+        }
+
+        highlightCtx.putImageData(imageData, 0, 0)
+
+        // 绘制高亮效果到主canvas
+        ctx.globalCompositeOperation = 'source-over'
+        ctx.drawImage(highlightCanvas, 0, 0)
+    }
+
+    highlightImg.src = selectedLayer.maskData
+}
+
+
+
+// 检测是否为边缘像素
+const isEdgePixel = (data: Uint8ClampedArray, x: number, y: number, width: number, height: number): boolean => {
+    // 检查周围8个像素，如果有非白色像素则认为是边缘
+    for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+            if (dx === 0 && dy === 0) continue
+
+            const nx = x + dx
+            const ny = y + dy
+
+            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                const index = (ny * width + nx) * 4
+                const r = data[index]
+                const g = data[index + 1]
+                const b = data[index + 2]
+
+                // 如果邻近像素不是白色，当前像素就是边缘
+                if (r < 200 || g < 200 || b < 200) {
+                    return true
+                }
+            }
+        }
+    }
+    return false
 }
 
 // 清空SAM任务
@@ -1576,6 +1850,17 @@ const addNewLayer = () => {
 
 const selectLayer = (layerId: string) => {
     selectedLayerId.value = layerId
+
+    const layer = layers.value.find(l => l.id === layerId)
+    console.log('🎯 选择图层:', {
+        图层ID: layerId,
+        图层存在: !!layer,
+        有材质: !!layer?.material,
+        材质名称: layer?.material?.name || '无'
+    })
+
+    // 重新绘制canvas以显示选中图层的高亮效果
+    redrawCanvasWithLayers()
 }
 
 const toggleLayerVisibility = (layerId: string) => {
@@ -2545,6 +2830,13 @@ const handleUploadMaterial = () => {
     uploadForm.name = ''
     uploadForm.type = 1 // 用户材质库
     uploadForm.file = null
+
+    // 清空上传组件的文件列表
+    nextTick(() => {
+        if (uploadRef.value) {
+            uploadRef.value.clearFiles()
+        }
+    })
 }
 
 // 上传系统材质
@@ -2553,14 +2845,45 @@ const handleUploadSystemMaterial = () => {
     uploadForm.name = ''
     uploadForm.type = 0 // 系统材质库
     uploadForm.file = null
+
+    // 清空上传组件的文件列表
+    nextTick(() => {
+        if (uploadRef.value) {
+            uploadRef.value.clearFiles()
+        }
+    })
 }
 
 const handleMaterialFileChange = (file: any) => {
-    uploadForm.file = file.raw
+    console.log('🔧 文件选择事件:', {
+        file: file,
+        raw: file?.raw,
+        name: file?.name,
+        type: file?.type
+    })
+
+    if (file && file.raw) {
+        uploadForm.file = file.raw
+        console.log('✅ 文件已设置:', uploadForm.file)
+    } else {
+        console.warn('⚠️ 文件对象无效:', file)
+    }
 }
 
 const confirmUploadMaterial = async () => {
+    console.log('🚀 确认上传材质:', {
+        name: uploadForm.name,
+        type: uploadForm.type,
+        file: uploadForm.file,
+        hasName: !!uploadForm.name,
+        hasFile: !!uploadForm.file
+    })
+
     if (!uploadForm.name || !uploadForm.file) {
+        console.warn('❌ 验证失败:', {
+            name: uploadForm.name || '未填写',
+            file: uploadForm.file || '未选择'
+        })
         ElMessage.warning('请填写完整信息')
         return
     }
@@ -2654,9 +2977,9 @@ onMounted(() => {
 
 
 .main-content {
-    margin-left: 120px;
+    margin-left: 80px;
     /* 向右移动120px，避免遮挡导航按钮 */
-    padding: 20px;
+
     width: calc(100% - 120px);
     /* 调整宽度适应左边距 */
 }
@@ -2670,7 +2993,7 @@ onMounted(() => {
 }
 
 .left-panel {
-    width: 300px;
+    width: 280px;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 10px;
     padding: 20px;
@@ -2690,7 +3013,7 @@ onMounted(() => {
 }
 
 .right-panel {
-    width: 350px;
+    width: 300px;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 10px;
     padding: 20px;
@@ -2698,6 +3021,29 @@ onMounted(() => {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* 美化滚动条样式 */
+.right-panel::-webkit-scrollbar {
+    width: 8px;
+}
+
+.right-panel::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.right-panel::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+.right-panel::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
 }
 
 .section-header {
@@ -3019,8 +3365,28 @@ onMounted(() => {
 }
 
 .layers-list {
-    max-height: 300px;
+    max-height: 400px;
     overflow-y: auto;
+    padding-right: 5px;
+}
+
+/* 图层列表滚动条样式 */
+.layers-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.layers-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.layers-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.layers-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.4);
 }
 
 .layer-item {
@@ -3035,9 +3401,15 @@ onMounted(() => {
     transition: all 0.3s ease;
 }
 
-.layer-item:hover,
-.layer-item.active {
+.layer-item:hover {
     background: rgba(200, 173, 127, 0.2);
+}
+
+.layer-item.active {
+    background: rgba(0, 150, 255, 0.3);
+    border: 2px solid rgba(0, 150, 255, 0.8);
+    box-shadow: 0 0 10px rgba(0, 150, 255, 0.5);
+    transform: scale(1.02);
 }
 
 .layer-preview {
@@ -3184,6 +3556,26 @@ onMounted(() => {
 .materials-content {
     max-height: 400px;
     overflow-y: auto;
+    padding-right: 5px;
+}
+
+/* 材质区域滚动条样式 */
+.materials-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.materials-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.materials-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.materials-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.4);
 }
 
 .materials-grid {
@@ -3216,10 +3608,11 @@ onMounted(() => {
 }
 
 .material-name {
-    color: white;
+    color: #333;
     font-size: 12px;
     text-align: center;
     margin-bottom: 5px;
+    font-weight: 500;
 }
 
 .material-actions {
@@ -3422,7 +3815,7 @@ onMounted(() => {
 }
 
 :deep(.el-input__inner) {
-    color: white;
+    color: rgb(0, 0, 0);
 }
 
 :deep(.el-input__inner::placeholder) {
